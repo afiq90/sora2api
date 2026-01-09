@@ -475,10 +475,10 @@ class TokenManager:
                 print(f"📄 响应内容: {response.text[:500]}")
                 raise Exception(f"Failed to activate Sora2: {response.status_code}")
 
-    async def st_to_at(self, session_token: str) -> dict:
+    async def st_to_at(self, session_token: str, proxy_url: Optional[str] = None) -> dict:
         """Convert Session Token to Access Token"""
         debug_logger.log_info(f"[ST_TO_AT] 开始转换 Session Token 为 Access Token...")
-        proxy_url = await self.proxy_manager.get_proxy_url()
+        proxy_url = await self.proxy_manager.get_proxy_url(proxy_url=proxy_url)
 
         async with AsyncSession() as session:
             headers = {
@@ -555,19 +555,20 @@ class TokenManager:
                 debug_logger.log_info(f"[ST_TO_AT] 🔴 异常: {str(e)}")
                 raise
     
-    async def rt_to_at(self, refresh_token: str, client_id: Optional[str] = None) -> dict:
+    async def rt_to_at(self, refresh_token: str, client_id: Optional[str] = None, proxy_url: Optional[str] = None) -> dict:
         """Convert Refresh Token to Access Token
 
         Args:
             refresh_token: Refresh Token
             client_id: Client ID (optional, uses default if not provided)
+            proxy_url: Proxy URL (optional, uses global proxy if not provided)
         """
         # Use provided client_id or default
         effective_client_id = client_id or "app_LlGpXReQgckcGGUo2JrYvtJK"
 
         debug_logger.log_info(f"[RT_TO_AT] 开始转换 Refresh Token 为 Access Token...")
         debug_logger.log_info(f"[RT_TO_AT] 使用 Client ID: {effective_client_id[:20]}...")
-        proxy_url = await self.proxy_manager.get_proxy_url()
+        proxy_url = await self.proxy_manager.get_proxy_url(proxy_url=proxy_url)
 
         async with AsyncSession() as session:
             headers = {

@@ -382,7 +382,10 @@ async def import_tokens(request: ImportTokensRequest, token: str = Depends(verif
                 if not import_item.session_token:
                     raise ValueError("ST导入模式需要提供 session_token")
                 # Convert ST to AT
-                st_result = await token_manager.st_to_at(import_item.session_token)
+                st_result = await token_manager.st_to_at(
+                    import_item.session_token,
+                    proxy_url=import_item.proxy_url
+                )
                 access_token = st_result["access_token"]
                 # Update email if API returned it
                 if "email" in st_result and st_result["email"]:
@@ -396,7 +399,8 @@ async def import_tokens(request: ImportTokensRequest, token: str = Depends(verif
                 # Convert RT to AT
                 rt_result = await token_manager.rt_to_at(
                     import_item.refresh_token,
-                    client_id=import_item.client_id
+                    client_id=import_item.client_id,
+                    proxy_url=import_item.proxy_url
                 )
                 access_token = rt_result["access_token"]
                 # Update RT if API returned new one
