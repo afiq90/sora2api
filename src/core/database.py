@@ -720,6 +720,7 @@ class Database:
         from datetime import date
         pool = await self.get_pool()
         async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT today_date FROM token_stats WHERE token_id = $1", token_id)
             if row and row['today_date'] != date.today():
                 await conn.execute("""
                     UPDATE token_stats
@@ -742,6 +743,7 @@ class Database:
         from datetime import date
         pool = await self.get_pool()
         async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT today_date FROM token_stats WHERE token_id = $1", token_id)
             if row and row['today_date'] != date.today():
                 await conn.execute("""
                     UPDATE token_stats
@@ -764,6 +766,7 @@ class Database:
         from datetime import date
         pool = await self.get_pool()
         async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT today_date FROM token_stats WHERE token_id = $1", token_id)
             if row and row['today_date'] != date.today():
                 if increment_consecutive:
                     await conn.execute("""
