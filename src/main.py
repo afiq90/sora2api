@@ -90,24 +90,32 @@ async def manage_page():
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
-    # Get config from setting.toml
-    config_dict = config.get_raw_config()
+    import os
+    
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        print("ERROR: DATABASE_URL environment variable not set")
+        raise Exception("DATABASE_URL environment variable is required")
+    
+    print(f"Starting application with database connection...")
+    
+    try:
+        config_dict = config.get_raw_config()
+        is_first_startup = not db.db_exists()
+        
+        await db.init_db()
 
-    # Check if database exists
-    is_first_startup = not db.db_exists()
-
-    # Initialize database tables
-    await db.init_db()
-
-    # Handle database initialization based on startup type
-    if is_first_startup:
-        print("🎉 First startup detected. Initializing database and configuration from setting.toml...")
-        await db.init_config_from_toml(config_dict, is_first_startup=True)
-        print("✓ Database and configuration initialized successfully.")
-    else:
-        print("🔄 Existing database detected. Checking for missing tables and columns...")
-        await db.check_and_migrate_db(config_dict)
-        print("✓ Database migration check completed.")
+        if is_first_startup:
+            print("🎉 First startup detected. Initializing database and configuration from setting.toml...")
+            await db.init_config_from_toml(config_dict, is_first_startup=True)
+            print("✓ Database and configuration initialized successfully.")
+        else:
+            print("🔄 Existing database detected. Checking for missing tables and columns...")
+            await db.check_and_migrate_db(config_dict)
+            print("✓ Database migration check completed.")
+    except Exception as e:
+        print(f"ERROR: Database initialization failed: {e}")
+        raise
 
     # Load admin credentials and API key from database
     admin_config = await db.get_admin_config()
@@ -145,6 +153,8 @@ async def startup_event():
 async def shutdown_event():
     """Cleanup on shutdown"""
     await generation_handler.file_cache.stop_cleanup_task()
+    await db.close()
+    print("Database connection pool closed")
 
 if __name__ == "__main__":
     uvicorn.run(

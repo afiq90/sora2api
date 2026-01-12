@@ -1,9 +1,11 @@
 """Database storage layer - PostgreSQL version"""
 import asyncpg
+import asyncio
 import json
 import os
 from datetime import datetime
 from typing import Optional, List
+from urllib.parse import urlparse
 from .models import Token, TokenStats, Task, RequestLog, AdminConfig, ProxyConfig, WatermarkFreeConfig, CacheConfig, GenerationConfig, TokenRefreshConfig
 
 class Database:
@@ -14,16 +16,44 @@ class Database:
             db_url = os.environ.get("DATABASE_URL")
         self.db_url = db_url
         self._pool: Optional[asyncpg.Pool] = None
+        
+        if self.db_url:
+            try:
+                parsed = urlparse(self.db_url)
+                print(f"Database configured: host={parsed.hostname}, port={parsed.port}, db={parsed.path[1:] if parsed.path else 'unknown'}")
+            except Exception as e:
+                print(f"Warning: Could not parse DATABASE_URL: {e}")
 
     async def get_pool(self) -> asyncpg.Pool:
-        """Get or create connection pool"""
+        """Get or create connection pool with retry logic"""
         if self._pool is None:
-            self._pool = await asyncpg.create_pool(
-                self.db_url,
-                min_size=2,
-                max_size=10,
-                command_timeout=60
-            )
+            max_retries = 5
+            retry_delay = 2
+            
+            for attempt in range(max_retries):
+                try:
+                    print(f"Attempting database connection (attempt {attempt + 1}/{max_retries})...")
+                    self._pool = await asyncpg.create_pool(
+                        self.db_url,
+                        min_size=1,
+                        max_size=10,
+                        command_timeout=60,
+                        timeout=30
+                    )
+                    print("Database connection pool created successfully")
+                    break
+                except Exception as e:
+                    error_msg = str(e)
+                    print(f"Database connection attempt {attempt + 1} failed: {error_msg}")
+                    
+                    if attempt < max_retries - 1:
+                        wait_time = retry_delay * (2 ** attempt)
+                        print(f"Retrying in {wait_time} seconds...")
+                        await asyncio.sleep(wait_time)
+                    else:
+                        print(f"All {max_retries} connection attempts failed")
+                        raise Exception(f"Failed to connect to database after {max_retries} attempts: {error_msg}")
+        
         return self._pool
 
     async def close(self):
