@@ -451,8 +451,14 @@ class Database:
                 await self._ensure_config_rows(conn, config_dict=None)
 
     def _row_to_dict(self, row: asyncpg.Record) -> dict:
-        """Convert asyncpg Record to dictionary"""
-        return dict(row)
+        """Convert asyncpg Record to dictionary and format types for Pydantic"""
+        d = dict(row)
+        # Convert date to string for Pydantic model compatibility
+        if 'today_date' in d and d['today_date']:
+            from datetime import date
+            if isinstance(d['today_date'], date):
+                d['today_date'] = d['today_date'].isoformat()
+        return d
 
     async def add_token(self, token: Token) -> int:
         """Add a new token"""
@@ -714,10 +720,7 @@ class Database:
         from datetime import date
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            today = str(date.today())
-            row = await conn.fetchrow("SELECT today_date FROM token_stats WHERE token_id = $1", token_id)
-
-            if row and str(row['today_date']) != today:
+            if row and row['today_date'] != date.today():
                 await conn.execute("""
                     UPDATE token_stats
                     SET image_count = image_count + 1,
@@ -739,10 +742,7 @@ class Database:
         from datetime import date
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            today = str(date.today())
-            row = await conn.fetchrow("SELECT today_date FROM token_stats WHERE token_id = $1", token_id)
-
-            if row and str(row['today_date']) != today:
+            if row and row['today_date'] != date.today():
                 await conn.execute("""
                     UPDATE token_stats
                     SET video_count = video_count + 1,
@@ -764,10 +764,7 @@ class Database:
         from datetime import date
         pool = await self.get_pool()
         async with pool.acquire() as conn:
-            today = str(date.today())
-            row = await conn.fetchrow("SELECT today_date FROM token_stats WHERE token_id = $1", token_id)
-
-            if row and str(row['today_date']) != today:
+            if row and row['today_date'] != date.today():
                 if increment_consecutive:
                     await conn.execute("""
                         UPDATE token_stats
