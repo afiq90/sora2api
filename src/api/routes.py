@@ -46,21 +46,23 @@ def _extract_remix_id(text: str) -> str:
 async def list_models(api_key: str = Depends(verify_api_key_header)):
     """List available models"""
     models = []
-    
+
     for model_id, config in MODEL_CONFIG.items():
         description = f"{config['type'].capitalize()} generation"
         if config['type'] == 'image':
             description += f" - {config['width']}x{config['height']}"
-        else:
+        elif config['type'] == 'video':
             description += f" - {config['orientation']}"
-        
+        elif config['type'] == 'prompt_enhance':
+            description += f" - {config['expansion_level']} ({config['duration_s']}s)"
+
         models.append({
             "id": model_id,
             "object": "model",
             "owned_by": "sora2api",
             "description": description
         })
-    
+
     return {
         "object": "list",
         "data": models

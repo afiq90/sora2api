@@ -1185,7 +1185,7 @@ class TokenManager:
             if token_data.st:
                 try:
                     debug_logger.log_info(f"[AUTO_REFRESH] 📝 Token {token_id}: 尝试使用 ST 刷新...")
-                    result = await self.st_to_at(token_data.st)
+                    result = await self.st_to_at(token_data.st, proxy_url=token_data.proxy_url)
                     new_at = result.get("access_token")
                     new_st = token_data.st  # ST refresh doesn't return new ST, so keep the old one
                     refresh_method = "ST"
@@ -1198,7 +1198,7 @@ class TokenManager:
             if not new_at and token_data.rt:
                 try:
                     debug_logger.log_info(f"[AUTO_REFRESH] 📝 Token {token_id}: 尝试使用 RT 刷新...")
-                    result = await self.rt_to_at(token_data.rt, client_id=token_data.client_id)
+                    result = await self.rt_to_at(token_data.rt, client_id=token_data.client_id, proxy_url=token_data.proxy_url)
                     new_at = result.get("access_token")
                     new_rt = result.get("refresh_token", token_data.rt)  # RT might be updated
                     refresh_method = "RT"
@@ -1225,18 +1225,80 @@ class TokenManager:
 
                 # 📍 Step 9: 检查刷新后的过期时间
                 if new_hours_until_expiry < 0:
-                    # 刷新后仍然过期，禁用Token
-                    debug_logger.log_info(f"[AUTO_REFRESH] 🔴 Token {token_id}: 刷新后仍然过期（剩余时间: {new_hours_until_expiry:.2f} 小时），已禁用")
-                    await self.disable_token(token_id)
+                    # 刷新后仍然过期，标记为已失效并禁用Token
+                    debug_logger.log_info(f"[AUTO_REFRESH] 🔴 Token {token_id}: 刷新后仍然过期（剩余时间: {new_hours_until_expiry:.2f} 小时），标记为已失效并禁用")
+                    await self.db.mark_token_expired(token_id)
+                    await self.db.update_token_status(token_id, False)
                     return False
 
                 return True
             else:
-                # 刷新失败: 禁用Token
-                debug_logger.log_info(f"[AUTO_REFRESH] 🚫 Token {token_id}: 无法刷新（无有效的 ST 或 RT），已禁用")
-                await self.disable_token(token_id)
+                # 刷新失败: 标记为已失效并禁用Token
+                debug_logger.log_info(f"[AUTO_REFRESH] 🚫 Token {token_id}: 无法刷新（无有效的 ST 或 RT），标记为已失效并禁用")
+                await self.db.mark_token_expired(token_id)
+                await self.db.update_token_status(token_id, False)
                 return False
 
         except Exception as e:
             debug_logger.log_info(f"[AUTO_REFRESH] 🔴 Token {token_id}: 自动刷新异常 - {str(e)}")
             return False
+
+    async def batch_refresh_all_tokens(self) -> dict:
+        """
+        Batch refresh all tokens (called by scheduled task at midnight)
+
+        Returns:
+            dict with success/failed/skipped counts
+        """
+        debug_logger.log_info("[BATCH_REFRESH] 🔄 开始批量刷新所有Token...")
+
+        # Get all tokens
+        all_tokens = await self.db.get_all_tokens()
+
+        success_count = 0
+        failed_count = 0
+        skipped_count = 0
+
+        for token in all_tokens:
+            # Skip tokens without ST or RT
+            if not token.st and not token.rt:
+                debug_logger.log_info(f"[BATCH_REFRESH] ⏭️  Token {token.id} ({token.email}): 无ST或RT，跳过")
+                skipped_count += 1
+                continue
+
+            # Skip tokens without expiry time
+            if not token.expiry_time:
+                debug_logger.log_info(f"[BATCH_REFRESH] ⏭️  Token {token.id} ({token.email}): 无过期时间，跳过")
+                skipped_count += 1
+                continue
+
+            # Check if token needs refresh (expiry within 24 hours)
+            time_until_expiry = token.expiry_time - datetime.now()
+            hours_until_expiry = time_until_expiry.total_seconds() / 3600
+
+            if hours_until_expiry > 24:
+                debug_logger.log_info(f"[BATCH_REFRESH] ⏭️  Token {token.id} ({token.email}): 剩余时间 {hours_until_expiry:.2f}h > 24h，跳过")
+                skipped_count += 1
+                continue
+
+            # Try to refresh
+            try:
+                result = await self.auto_refresh_expiring_token(token.id)
+                if result:
+                    success_count += 1
+                    debug_logger.log_info(f"[BATCH_REFRESH] ✅ Token {token.id} ({token.email}): 刷新成功")
+                else:
+                    failed_count += 1
+                    debug_logger.log_info(f"[BATCH_REFRESH] ❌ Token {token.id} ({token.email}): 刷新失败")
+            except Exception as e:
+                failed_count += 1
+                debug_logger.log_info(f"[BATCH_REFRESH] ❌ Token {token.id} ({token.email}): 刷新异常 - {str(e)}")
+
+        debug_logger.log_info(f"[BATCH_REFRESH] ✅ 批量刷新完成: 成功 {success_count}, 失败 {failed_count}, 跳过 {skipped_count}")
+
+        return {
+            "success": success_count,
+            "failed": failed_count,
+            "skipped": skipped_count,
+            "total": len(all_tokens)
+        }

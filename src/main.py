@@ -5,6 +5,9 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from datetime import datetime
 
 # Import modules
 from .core.config import config
@@ -18,12 +21,13 @@ from .services.concurrency_manager import ConcurrencyManager
 from .api import routes as api_routes
 from .api import admin as admin_routes
 
+# Initialize scheduler (uses system local timezone by default)
+scheduler = AsyncIOScheduler()
+
 # Initialize FastAPI app
-app = FastAPI(
-    title="Sora2API",
-    description="OpenAI compatible API for Sora",
-    version="1.0.0"
-)
+app = FastAPI(title="Sora2API",
+              description="OpenAI compatible API for Sora",
+              version="1.0.0")
 
 # CORS middleware
 app.add_middleware(
@@ -41,11 +45,15 @@ proxy_manager = ProxyManager(db)
 concurrency_manager = ConcurrencyManager()
 load_balancer = LoadBalancer(token_manager, concurrency_manager)
 sora_client = SoraClient(proxy_manager)
-generation_handler = GenerationHandler(sora_client, token_manager, load_balancer, db, proxy_manager, concurrency_manager)
+generation_handler = GenerationHandler(sora_client, token_manager,
+                                       load_balancer, db, proxy_manager,
+                                       concurrency_manager)
 
 # Set dependencies for route modules
 api_routes.set_generation_handler(generation_handler)
-admin_routes.set_dependencies(token_manager, proxy_manager, db, generation_handler, concurrency_manager)
+admin_routes.set_dependencies(token_manager, proxy_manager, db,
+                              generation_handler, concurrency_manager,
+                              scheduler)
 
 # Include routers
 app.include_router(api_routes.router)
@@ -60,6 +68,7 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 tmp_dir = Path(__file__).parent.parent / "tmp"
 tmp_dir.mkdir(exist_ok=True)
 app.mount("/tmp", StaticFiles(directory=str(tmp_dir)), name="tmp")
+
 
 # Frontend routes
 @app.get("/", response_class=HTMLResponse)
@@ -77,40 +86,47 @@ async def root():
     </html>
     """
 
+
 @app.get("/login", response_class=FileResponse)
 async def login_page():
     """Serve login page"""
     return FileResponse(str(static_dir / "login.html"))
+
 
 @app.get("/manage", response_class=FileResponse)
 async def manage_page():
     """Serve management page"""
     return FileResponse(str(static_dir / "manage.html"))
 
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
     import os
-    
+
     db_url = os.environ.get("DATABASE_URL")
     if not db_url:
         print("ERROR: DATABASE_URL environment variable not set")
         raise Exception("DATABASE_URL environment variable is required")
-    
+
     print(f"Starting application with database connection...")
-    
+
     try:
         config_dict = config.get_raw_config()
         is_first_startup = not db.db_exists()
-        
+
         await db.init_db()
 
         if is_first_startup:
-            print("🎉 First startup detected. Initializing database and configuration from setting.toml...")
+            print(
+                "🎉 First startup detected. Initializing database and configuration from setting.toml..."
+            )
             await db.init_config_from_toml(config_dict, is_first_startup=True)
             print("✓ Database and configuration initialized successfully.")
         else:
-            print("🔄 Existing database detected. Checking for missing tables and columns...")
+            print(
+                "🔄 Existing database detected. Checking for missing tables and columns..."
+            )
             await db.check_and_migrate_db(config_dict)
             print("✓ Database migration check completed.")
     except Exception as e:
@@ -128,7 +144,7 @@ async def startup_event():
     config.set_cache_enabled(cache_config.cache_enabled)
     config.set_cache_timeout(cache_config.cache_timeout)
     config.set_cache_base_url(cache_config.cache_base_url or "")
-    
+
     # Sync cache timeout to file cache instance
     generation_handler.file_cache.set_timeout(cache_config.cache_timeout)
 
@@ -139,7 +155,8 @@ async def startup_event():
 
     # Load token refresh configuration from database
     token_refresh_config = await db.get_token_refresh_config()
-    config.set_at_auto_refresh_enabled(token_refresh_config.at_auto_refresh_enabled)
+    config.set_at_auto_refresh_enabled(
+        token_refresh_config.at_auto_refresh_enabled)
 
     # Initialize concurrency manager with all tokens
     all_tokens = await db.get_all_tokens()
@@ -149,17 +166,34 @@ async def startup_event():
     # Start file cache cleanup task
     await generation_handler.file_cache.start_cleanup_task()
 
+    # Start token refresh scheduler if enabled
+    if token_refresh_config.at_auto_refresh_enabled:
+        scheduler.add_job(
+            token_manager.batch_refresh_all_tokens,
+            CronTrigger(
+                hour=0,
+                minute=0),  # Every day at 00:00 (system local timezone)
+            id='batch_refresh_tokens',
+            name='Batch refresh all tokens',
+            replace_existing=True)
+        scheduler.start()
+        print("✓ Token auto-refresh scheduler started (daily at 00:00)")
+    else:
+        print("⊘ Token auto-refresh is disabled")
+
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
     await generation_handler.file_cache.stop_cleanup_task()
     await db.close()
     print("Database connection pool closed")
+    if scheduler.running:
+        scheduler.shutdown()
+
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "src.main:app",
-        host=config.server_host,
-        port=config.server_port,
-        reload=False
-    )
+    uvicorn.run("src.main:app",
+                host=config.server_host,
+                port=config.server_port,
+                reload=False)

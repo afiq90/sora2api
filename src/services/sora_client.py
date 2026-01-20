@@ -1,4 +1,5 @@
 """Sora API client module"""
+import asyncio
 import base64
 import hashlib
 import json
@@ -10,6 +11,8 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Tuple
 from uuid import uuid4
+from urllib.request import Request, urlopen, build_opener, ProxyHandler
+from urllib.error import HTTPError, URLError
 from curl_cffi.requests import AsyncSession
 from curl_cffi import CurlMime
 from .proxy_manager import ProxyManager
@@ -44,6 +47,27 @@ POW_WINDOW_KEYS = [
     "navigator", "screen", "innerWidth", "innerHeight",
     "localStorage", "sessionStorage", "crypto", "performance",
     "fetch", "setTimeout", "setInterval", "console",
+]
+
+# User-Agent pools
+DESKTOP_USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+]
+
+MOBILE_USER_AGENTS = [
+    "Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)",
+    "Sora/1.2026.007 (Android 14; SM-G998B; build 2600700)",
+    "Sora/1.2026.007 (Android 15; Pixel 8 Pro; build 2600700)",
+    "Sora/1.2026.007 (Android 14; Pixel 7; build 2600700)",
+    "Sora/1.2026.007 (Android 15; 2211133C; build 2600700)",
+    "Sora/1.2026.007 (Android 14; SM-S918B; build 2600700)",
+    "Sora/1.2026.007 (Android 15; OnePlus 12; build 2600700)",
 ]
 
 class SoraClient:
@@ -145,6 +169,9 @@ class SoraClient:
                 if not success:
                     debug_logger.log_warning("PoW calculation failed, using error token")
 
+        if not final_pow_token.endswith("~S"):
+            final_pow_token = final_pow_token + "~S"
+
         token_payload = {
             "p": final_pow_token,
             "t": resp.get("turnstile", {}).get("dx", ""),
@@ -154,10 +181,59 @@ class SoraClient:
         }
         return json.dumps(token_payload, ensure_ascii=False, separators=(",", ":"))
 
+    @staticmethod
+    def _post_json_sync(url: str, headers: dict, payload: dict, timeout: int, proxy: Optional[str]) -> Dict[str, Any]:
+        data = json.dumps(payload).encode("utf-8")
+        req = Request(url, data=data, headers=headers, method="POST")
+
+        try:
+            if proxy:
+                opener = build_opener(ProxyHandler({"http": proxy, "https": proxy}))
+                resp = opener.open(req, timeout=timeout)
+            else:
+                resp = urlopen(req, timeout=timeout)
+
+            resp_text = resp.read().decode("utf-8")
+            if resp.status not in (200, 201):
+                raise Exception(f"Request failed: {resp.status} {resp_text}")
+            return json.loads(resp_text)
+        except HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="ignore")
+            raise Exception(f"HTTP Error: {exc.code} {body}") from exc
+        except URLError as exc:
+            raise Exception(f"URL Error: {exc}") from exc
+
+    async def _nf_create_urllib(self, token: str, payload: dict, sentinel_token: str,
+                                proxy_url: Optional[str], token_id: Optional[int] = None) -> Dict[str, Any]:
+        url = f"{self.base_url}/nf/create"
+        user_agent = random.choice(MOBILE_USER_AGENTS)
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "openai-sentinel-token": sentinel_token,
+            "Content-Type": "application/json",
+            "User-Agent": user_agent,
+            "Origin": "https://sora.chatgpt.com",
+            "Referer": "https://sora.chatgpt.com/",
+        }
+
+        try:
+            result = await asyncio.to_thread(
+                self._post_json_sync, url, headers, payload, 30, proxy_url
+            )
+            return result
+        except Exception as e:
+            debug_logger.log_error(
+                error_message=f"nf/create request failed: {str(e)}",
+                status_code=0,
+                response_text=str(e)
+            )
+            raise
+
     async def _generate_sentinel_token(self, token: Optional[str] = None) -> str:
         """Generate openai-sentinel-token by calling /backend-api/sentinel/req and solving PoW"""
         req_id = str(uuid4())
-        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        user_agent = random.choice(DESKTOP_USER_AGENTS)
         pow_token = self._get_pow_token(user_agent)
 
         proxy_url = await self.proxy_manager.get_proxy_url()
@@ -175,27 +251,17 @@ class SoraClient:
         if token:
             headers["Authorization"] = f"Bearer {token}"
 
-        async with AsyncSession() as session:
-            kwargs = {
-                "headers": headers,
-                "json": payload,
-                "timeout": 10,
-                "impersonate": "chrome"
-            }
-            if proxy_url:
-                kwargs["proxy"] = proxy_url
-
-            response = await session.post(url, **kwargs)
-
-            if response.status_code not in [200, 201]:
-                debug_logger.log_error(
-                    error_message=f"Sentinel request failed: {response.status_code}",
-                    status_code=response.status_code,
-                    response_text=response.text
-                )
-                raise Exception(f"Sentinel request failed: {response.status_code}")
-
-            resp = response.json()
+        try:
+            resp = await asyncio.to_thread(
+                self._post_json_sync, url, headers, payload, 10, proxy_url
+            )
+        except Exception as e:
+            debug_logger.log_error(
+                error_message=f"Sentinel request failed: {str(e)}",
+                status_code=0,
+                response_text=str(e)
+            )
+            raise
 
         # Build final sentinel token
         sentinel_token = self._build_sentinel_token(
@@ -486,7 +552,9 @@ class SoraClient:
         }
 
         # 生成请求需要添加 sentinel token
-        result = await self._make_request("POST", "/nf/create", token, json_data=json_data, add_sentinel_token=True, token_id=token_id)
+        proxy_url = await self.proxy_manager.get_proxy_url(token_id)
+        sentinel_token = await self._generate_sentinel_token(token)
+        result = await self._nf_create_urllib(token, json_data, sentinel_token, proxy_url, token_id)
         return result["id"]
     
     async def get_image_tasks(self, token: str, limit: int = 20, token_id: Optional[int] = None) -> Dict[str, Any]:
@@ -887,7 +955,10 @@ class SoraClient:
             "style_id": style_id
         }
 
-        result = await self._make_request("POST", "/nf/create", token, json_data=json_data, add_sentinel_token=True)
+        # Generate sentinel token and call /nf/create using urllib
+        proxy_url = await self.proxy_manager.get_proxy_url()
+        sentinel_token = await self._generate_sentinel_token(token)
+        result = await self._nf_create_urllib(token, json_data, sentinel_token, proxy_url)
         return result.get("id")
 
     async def generate_storyboard(self, prompt: str, token: str, orientation: str = "landscape",
@@ -934,3 +1005,26 @@ class SoraClient:
 
         result = await self._make_request("POST", "/nf/create/storyboard", token, json_data=json_data, add_sentinel_token=True)
         return result.get("id")
+
+    async def enhance_prompt(self, prompt: str, token: str, expansion_level: str = "medium",
+                            duration_s: int = 10, token_id: Optional[int] = None) -> str:
+        """Enhance prompt using Sora's prompt enhancement API
+
+        Args:
+            prompt: Original prompt to enhance
+            token: Access token
+            expansion_level: Expansion level (medium/long)
+            duration_s: Duration in seconds (10/15/20)
+            token_id: Token ID for getting token-specific proxy (optional)
+
+        Returns:
+            Enhanced prompt text
+        """
+        json_data = {
+            "prompt": prompt,
+            "expansion_level": expansion_level,
+            "duration_s": duration_s
+        }
+
+        result = await self._make_request("POST", "/editor/enhance_prompt", token, json_data=json_data, token_id=token_id)
+        return result.get("enhanced_prompt", "")

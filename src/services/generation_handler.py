@@ -154,6 +154,52 @@ MODEL_CONFIG = {
         "model": "sy_ore",
         "size": "large",
         "require_pro": True
+    },
+    # Prompt enhancement models
+    "prompt-enhance-short-10s": {
+        "type": "prompt_enhance",
+        "expansion_level": "short",
+        "duration_s": 10
+    },
+    "prompt-enhance-short-15s": {
+        "type": "prompt_enhance",
+        "expansion_level": "short",
+        "duration_s": 15
+    },
+    "prompt-enhance-short-20s": {
+        "type": "prompt_enhance",
+        "expansion_level": "short",
+        "duration_s": 20
+    },
+    "prompt-enhance-medium-10s": {
+        "type": "prompt_enhance",
+        "expansion_level": "medium",
+        "duration_s": 10
+    },
+    "prompt-enhance-medium-15s": {
+        "type": "prompt_enhance",
+        "expansion_level": "medium",
+        "duration_s": 15
+    },
+    "prompt-enhance-medium-20s": {
+        "type": "prompt_enhance",
+        "expansion_level": "medium",
+        "duration_s": 20
+    },
+    "prompt-enhance-long-10s": {
+        "type": "prompt_enhance",
+        "expansion_level": "long",
+        "duration_s": 10
+    },
+    "prompt-enhance-long-15s": {
+        "type": "prompt_enhance",
+        "expansion_level": "long",
+        "duration_s": 15
+    },
+    "prompt-enhance-long-20s": {
+        "type": "prompt_enhance",
+        "expansion_level": "long",
+        "duration_s": 20
     }
 }
 
@@ -356,6 +402,13 @@ class GenerationHandler:
         model_config = MODEL_CONFIG[model]
         is_video = model_config["type"] == "video"
         is_image = model_config["type"] == "image"
+        is_prompt_enhance = model_config["type"] == "prompt_enhance"
+
+        # Handle prompt enhancement
+        if is_prompt_enhance:
+            async for chunk in self._handle_prompt_enhance(prompt, model_config, stream):
+                yield chunk
+            return
 
         # Non-streaming mode: only check availability
         if not stream:
@@ -438,8 +491,21 @@ class GenerationHandler:
 
         task_id = None
         is_first_chunk = True  # Track if this is the first chunk
+        log_id = None  # Initialize log_id
 
         try:
+            # Create initial log entry BEFORE submitting task to upstream
+            # This ensures the log is created even if upstream fails
+            log_id = await self._log_request(
+                token_obj.id,
+                f"generate_{model_config['type']}",
+                {"model": model, "prompt": prompt, "has_image": image is not None},
+                {},  # Empty response initially
+                -1,  # -1 means in-progress
+                -1.0,  # -1.0 means in-progress
+                task_id=None  # Will be updated after task submission
+            )
+
             # Upload image if provided
             media_id = None
             if image:
@@ -520,7 +586,7 @@ class GenerationHandler:
                     media_id=media_id,
                     token_id=token_obj.id
                 )
-            
+
             # Save task to database
             task = Task(
                 task_id=task_id,
@@ -532,16 +598,9 @@ class GenerationHandler:
             )
             await self.db.create_task(task)
 
-            # Create initial log entry (status_code=-1, duration=-1.0 means in-progress)
-            log_id = await self._log_request(
-                token_obj.id,
-                f"generate_{model_config['type']}",
-                {"model": model, "prompt": prompt, "has_image": image is not None},
-                {},  # Empty response initially
-                -1,  # -1 means in-progress
-                -1.0,  # -1.0 means in-progress
-                task_id=task_id
-            )
+            # Update log entry with task_id now that we have it
+            if log_id:
+                await self.db.update_request_log_task_id(log_id, task_id)
 
             # Record usage
             await self.token_manager.record_usage(token_obj.id, is_video=is_video)
@@ -733,6 +792,9 @@ class GenerationHandler:
                             # Update last_progress for tracking
                             last_progress = progress_pct
                             status = task.get("status", "processing")
+
+                            # Update database with current progress
+                            await self.db.update_task(task_id, "processing", progress_pct)
 
                             # Output status every 30 seconds (not just when progress changes)
                             current_time = time.time()
@@ -1274,6 +1336,60 @@ class GenerationHandler:
             # Don't fail the request if logging fails
             print(f"Failed to log request: {e}")
             return None
+
+    # ==================== Prompt Enhancement Handler ====================
+
+    async def _handle_prompt_enhance(self, prompt: str, model_config: Dict, stream: bool) -> AsyncGenerator[str, None]:
+        """Handle prompt enhancement request
+
+        Args:
+            prompt: Original prompt to enhance
+            model_config: Model configuration
+            stream: Whether to stream response
+        """
+        expansion_level = model_config["expansion_level"]
+        duration_s = model_config["duration_s"]
+
+        # Select token
+        token_obj = await self.load_balancer.select_token(for_video_generation=True)
+        if not token_obj:
+            error_msg = "No available tokens for prompt enhancement"
+            if stream:
+                yield self._format_stream_chunk(reasoning_content=f"**Error:** {error_msg}", is_first=True)
+                yield self._format_stream_chunk(finish_reason="STOP")
+            else:
+                yield self._format_non_stream_response(error_msg)
+            return
+
+        try:
+            # Call enhance_prompt API
+            enhanced_prompt = await self.sora_client.enhance_prompt(
+                prompt=prompt,
+                token=token_obj.token,
+                expansion_level=expansion_level,
+                duration_s=duration_s,
+                token_id=token_obj.id
+            )
+
+            if stream:
+                # Stream response
+                yield self._format_stream_chunk(
+                    content=enhanced_prompt,
+                    is_first=True
+                )
+                yield self._format_stream_chunk(finish_reason="STOP")
+            else:
+                # Non-stream response
+                yield self._format_non_stream_response(enhanced_prompt)
+
+        except Exception as e:
+            error_msg = f"Prompt enhancement failed: {str(e)}"
+            debug_logger.log_error(error_msg)
+            if stream:
+                yield self._format_stream_chunk(content=f"Error: {error_msg}", is_first=True)
+                yield self._format_stream_chunk(finish_reason="STOP")
+            else:
+                yield self._format_non_stream_response(error_msg)
 
     # ==================== Character Creation and Remix Handlers ====================
 
