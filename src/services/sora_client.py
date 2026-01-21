@@ -186,22 +186,39 @@ class SoraClient:
         data = json.dumps(payload).encode("utf-8")
         req = Request(url, data=data, headers=headers, method="POST")
 
-        try:
-            if proxy:
-                opener = build_opener(ProxyHandler({"http": proxy, "https": proxy}))
-                resp = opener.open(req, timeout=timeout)
-            else:
-                resp = urlopen(req, timeout=timeout)
+        max_retries = 3
+        last_exception = None
 
-            resp_text = resp.read().decode("utf-8")
-            if resp.status not in (200, 201):
-                raise Exception(f"Request failed: {resp.status} {resp_text}")
-            return json.loads(resp_text)
-        except HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="ignore")
-            raise Exception(f"HTTP Error: {exc.code} {body}") from exc
-        except URLError as exc:
-            raise Exception(f"URL Error: {exc}") from exc
+        for attempt in range(max_retries):
+            try:
+                if proxy:
+                    opener = build_opener(ProxyHandler({"http": proxy, "https": proxy}))
+                    resp = opener.open(req, timeout=timeout)
+                else:
+                    resp = urlopen(req, timeout=timeout)
+
+                resp_text = resp.read().decode("utf-8")
+                if resp.status not in (200, 201):
+                    raise Exception(f"Request failed: {resp.status} {resp_text}")
+                return json.loads(resp_text)
+            except (HTTPError, URLError, Exception) as exc:
+                last_exception = exc
+                # Handle specific SSL or connection errors with retry
+                error_str = str(exc)
+                if any(err in error_str for err in ["SSL", "EOF", "Remote end closed", "IncompleteRead", "connection"]):
+                    if attempt < max_retries - 1:
+                        time.sleep(1 * (attempt + 1))
+                        continue
+                
+                if isinstance(exc, HTTPError):
+                    body = exc.read().decode("utf-8", errors="ignore")
+                    raise Exception(f"HTTP Error: {exc.code} {body}") from exc
+                elif isinstance(exc, URLError):
+                    raise Exception(f"URL Error: {exc}") from exc
+                else:
+                    raise exc
+        
+        raise last_exception or Exception("Request failed after retries")
 
     async def _nf_create_urllib(self, token: str, payload: dict, sentinel_token: str,
                                 proxy_url: Optional[str], token_id: Optional[int] = None) -> Dict[str, Any]:
