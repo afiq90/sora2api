@@ -223,3 +223,70 @@ Duration: 2235.91ms
 ]
 ====================================================================================================
 
+====================================================================================================
+🔵 [REQUEST] 2026-01-21 03:16:53.106
+----------------------------------------------------------------------------------------------------
+Method: GET
+URL: https://sora.chatgpt.com/backend/nf/pending/v2
+
+📋 Headers:
+  Authorization: Bearer eyJhbG...PLUpEo
+  User-Agent: Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)
+  Content-Type: application/json
+
+🌐 Proxy: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
+====================================================================================================
+
+====================================================================================================
+🟢 [RESPONSE] 2026-01-21 03:16:55.067
+----------------------------------------------------------------------------------------------------
+Status: 200 ✅
+Duration: 1960.46ms
+
+📋 Response Headers:
+  date: Wed, 21 Jan 2026 03:16:54 GMT
+  content-type: application/json
+  openai-version: 2020-10-01
+  openai-organization: user-j4warykx7oidjkkk7otkzxsp
+  x-request-id: 36357dce-4c72-4221-b073-6896d2e6c1bb
+  openai-processing-ms: 275
+  x-oai-request-id: 36357dce-4c72-4221-b073-6896d2e6c1bb
+  x-sora-request-id: 36357dce-4c72-4221-b073-6896d2e6c1bb
+  x-envoy-upstream-service-time: 278
+  x-openai-proxy-wasm: v0.1
+  cf-cache-status: DYNAMIC
+  set-cookie: __cf_bm=0RKo9n6mGAbiioMG60FNAJhCrQTqCN.30DT9JO2LFxk-1768965414-1.0.1.1-UG7gpERMLtseJnb2A_1wGbCuSSvZBtP8yL0Gj.DGnLAtwBbHnpATHy5IxWXR.yCSUUy6z53KDWl_JOGunvGdeL3zv26rBZFXwdbQ3cWyhsI; path=/; expires=Wed, 21-Jan-26 03:46:54 GMT; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None, __cflb=0H28vBjUqcdJN5F5i82iriTLTdVMReM9vPgYfzMEpoX; SameSite=None; Secure; path=/; expires=Wed, 21-Jan-26 03:46:54 GMT; HttpOnly, _cfuvid=YHX2RSWDI0KrYmDxVyP1cDQuKPYP5VggBpN1rY42la4-1768965414854-0.0.1.1-604800000; path=/; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None
+  server-timing: cfCacheStatus;desc="DYNAMIC", cfOrigin;dur=798,cfEdge;dur=19
+  strict-transport-security: max-age=31536000; includeSubDomains; preload
+  x-content-type-options: nosniff
+  server: cloudflare
+  cf-ray: 9c13a7cdb8bc8a90-NRT
+  content-encoding: gzip
+
+📦 Response Body:
+[
+  {
+    "id": "task_01kff8vtv1f9rvrawqjkdbhs6z",
+    "status": "running",
+    "prompt": "a woman duet singing with a monkey",
+    "title": null,
+    "progress_pct": 0.1,
+    "generations": []
+  }
+]
+====================================================================================================
+
+====================================================================================================
+🔵 [REQUEST] 2026-01-21 03:16:57.611
+----------------------------------------------------------------------------------------------------
+Method: GET
+URL: https://sora.chatgpt.com/backend/nf/pending/v2
+
+📋 Headers:
+  Authorization: Bearer eyJhbG...PLUpEo
+  User-Agent: Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)
+  Content-Type: application/json
+
+🌐 Proxy: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
+====================================================================================================
+
