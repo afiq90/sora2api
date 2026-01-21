@@ -1,0 +1,225 @@
+====================================================================================================
+🔴 [ERROR] 2026-01-21 03:10:04.026
+----------------------------------------------------------------------------------------------------
+Error Message: nf/create request failed: HTTP Error: 400 {
+  "error": {
+    "message": "We're under heavy load, please try again later.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "heavy_load"
+  }
+}
+
+📦 Error Response:
+HTTP Error: 400 {
+  "error": {
+    "message": "We're under heavy load, please try again later.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "heavy_load"
+  }
+}
+====================================================================================================
+
+====================================================================================================
+🔴 [ERROR] 2026-01-21 03:10:26.874
+----------------------------------------------------------------------------------------------------
+Error Message: nf/create request failed: HTTP Error: 400 {
+  "error": {
+    "message": "We're under heavy load, please try again later.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "heavy_load"
+  }
+}
+
+📦 Error Response:
+HTTP Error: 400 {
+  "error": {
+    "message": "We're under heavy load, please try again later.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "heavy_load"
+  }
+}
+====================================================================================================
+
+====================================================================================================
+🔴 [ERROR] 2026-01-21 03:10:36.784
+----------------------------------------------------------------------------------------------------
+Error Message: nf/create request failed: HTTP Error: 400 {
+  "error": {
+    "message": "We're under heavy load, please try again later.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "heavy_load"
+  }
+}
+
+📦 Error Response:
+HTTP Error: 400 {
+  "error": {
+    "message": "We're under heavy load, please try again later.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "heavy_load"
+  }
+}
+====================================================================================================
+
+====================================================================================================
+🔴 [ERROR] 2026-01-21 03:11:00.149
+----------------------------------------------------------------------------------------------------
+Error Message: nf/create request failed: URL Error: <urlopen error unknown url type: socks5>
+
+📦 Error Response:
+URL Error: <urlopen error unknown url type: socks5>
+====================================================================================================
+
+====================================================================================================
+🔴 [ERROR] 2026-01-21 03:11:41.135
+----------------------------------------------------------------------------------------------------
+Error Message: nf/create request failed: HTTP Error: 429 {
+  "error": {
+    "message": "You already have 3 generations in progress. Please wait for them to finish before starting a new one.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "too_many_concurrent_tasks",
+    "details": {
+      "num_tasks": 3
+    }
+  }
+}
+
+📦 Error Response:
+HTTP Error: 429 {
+  "error": {
+    "message": "You already have 3 generations in progress. Please wait for them to finish before starting a new one.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "too_many_concurrent_tasks",
+    "details": {
+      "num_tasks": 3
+    }
+  }
+}
+====================================================================================================
+
+ℹ️  [2026-01-21 03:15:54.618] [ST_TO_AT] 开始转换 Session Token 为 Access Token...
+ℹ️  [2026-01-21 03:15:54.623] [ST_TO_AT] 使用代理: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
+ℹ️  [2026-01-21 03:15:54.623] [ST_TO_AT] 📡 请求 URL: https://sora.chatgpt.com/api/auth/session
+ℹ️  [2026-01-21 03:15:57.347] [ST_TO_AT] 📥 响应状态码: 200
+ℹ️  [2026-01-21 03:15:57.347] [ST_TO_AT] 📄 响应内容: {"user":{"id":"user-J4warYkX7oIDjkkK7oTkZXSP","email":"bydindakl@gmail.com","idp":"google-oauth2","iat":1768760918,"mfa":false,"lastAuthorizationCheck":1768965356},"expires":"2026-04-21T03:15:57.044Z","accessToken":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc2OTYyNDkxOCwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfY29
+ℹ️  [2026-01-21 03:15:57.347] [ST_TO_AT] ✅ ST 转换成功
+ℹ️  [2026-01-21 03:15:57.347]   - Email: bydindakl@gmail.com
+ℹ️  [2026-01-21 03:15:57.347]   - 过期时间: 2026-04-21T03:15:57.044Z
+ℹ️  [2026-01-21 03:16:06.568] Token 3 concurrency reset (image: 1, video: 3)
+ℹ️  [2026-01-21 03:16:24.837] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-21 03:16:42.026] Starting task polling: task_id=task_01kff8vtv1f9rvrawqjkdbhs6z, is_video=True, timeout=3000s, max_attempts=1200
+ℹ️  [2026-01-21 03:16:42.028] Watermark-free mode: ENABLED
+====================================================================================================
+🔵 [REQUEST] 2026-01-21 03:16:44.530
+----------------------------------------------------------------------------------------------------
+Method: GET
+URL: https://sora.chatgpt.com/backend/nf/pending/v2
+
+📋 Headers:
+  Authorization: Bearer eyJhbG...PLUpEo
+  User-Agent: Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)
+  Content-Type: application/json
+
+🌐 Proxy: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
+====================================================================================================
+
+====================================================================================================
+🟢 [RESPONSE] 2026-01-21 03:16:45.853
+----------------------------------------------------------------------------------------------------
+Status: 200 ✅
+Duration: 1321.91ms
+
+📋 Response Headers:
+  date: Wed, 21 Jan 2026 03:16:45 GMT
+  content-type: application/json
+  openai-version: 2020-10-01
+  openai-organization: user-j4warykx7oidjkkk7otkzxsp
+  x-request-id: 849a608f-cced-4c4d-b334-e4a0012a2192
+  openai-processing-ms: 129
+  x-oai-request-id: 849a608f-cced-4c4d-b334-e4a0012a2192
+  x-sora-request-id: 849a608f-cced-4c4d-b334-e4a0012a2192
+  x-envoy-upstream-service-time: 132
+  x-openai-proxy-wasm: v0.1
+  cf-cache-status: DYNAMIC
+  set-cookie: __cf_bm=iKyhSN9sv4U6rmJdZXfYgr9iwvYTpmw.VP9glqPhYNA-1768965405-1.0.1.1-xEElO7q0nLqCnmhI2UGJHUQAWV3msldqcCU.qHFUG6JC_d.kcx833xuIEEEw6.zJ830HMyevhdw2saLqO3YnR0SbRmGKUgIg9khE1HXGIPs; path=/; expires=Wed, 21-Jan-26 03:46:45 GMT; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None, __cflb=0H28vBjUqcdJN5F5i8D3tzftjvH7q1fns5AkCtmR87P; SameSite=None; Secure; path=/; expires=Wed, 21-Jan-26 03:46:45 GMT; HttpOnly, _cfuvid=ltJxU4JOFYDllGWuXRiroFFstKZZ4ZBztu24lUkskqI-1768965405687-0.0.1.1-604800000; path=/; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None
+  server-timing: cfCacheStatus;desc="DYNAMIC", cfOrigin;dur=282,cfEdge;dur=13
+  strict-transport-security: max-age=31536000; includeSubDomains; preload
+  x-content-type-options: nosniff
+  server: cloudflare
+  cf-ray: 9c13a797b84a19f1-KIX
+  content-encoding: gzip
+
+📦 Response Body:
+[
+  {
+    "id": "task_01kff8vtv1f9rvrawqjkdbhs6z",
+    "status": "preprocessing",
+    "prompt": "a woman duet singing with a monkey",
+    "title": null,
+    "progress_pct": null,
+    "generations": []
+  }
+]
+====================================================================================================
+
+====================================================================================================
+🔵 [REQUEST] 2026-01-21 03:16:48.361
+----------------------------------------------------------------------------------------------------
+Method: GET
+URL: https://sora.chatgpt.com/backend/nf/pending/v2
+
+📋 Headers:
+  Authorization: Bearer eyJhbG...PLUpEo
+  User-Agent: Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)
+  Content-Type: application/json
+
+🌐 Proxy: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
+====================================================================================================
+
+====================================================================================================
+🟢 [RESPONSE] 2026-01-21 03:16:50.598
+----------------------------------------------------------------------------------------------------
+Status: 200 ✅
+Duration: 2235.91ms
+
+📋 Response Headers:
+  date: Wed, 21 Jan 2026 03:16:50 GMT
+  content-type: application/json
+  openai-version: 2020-10-01
+  openai-organization: user-j4warykx7oidjkkk7otkzxsp
+  x-request-id: 7a77409f-a3d6-46fa-b3ac-4b8a50ee533a
+  openai-processing-ms: 225
+  x-oai-request-id: 7a77409f-a3d6-46fa-b3ac-4b8a50ee533a
+  x-sora-request-id: 7a77409f-a3d6-46fa-b3ac-4b8a50ee533a
+  x-envoy-upstream-service-time: 229
+  x-openai-proxy-wasm: v0.1
+  cf-cache-status: DYNAMIC
+  set-cookie: __cf_bm=zM1gU45AHn3QRWYgnOWoKafQQ.NKbuaymYl4U4lhq_g-1768965410-1.0.1.1-v_V7k1YDJACpV4LZyNPNCM.q9WEKXbA1F_7Oe5P83irO.62dyRVXvZXVHCHyvqzQRXxMCUXRZYZ7hFRzgX606d5XmKdAmZUZiPkKGGTI.pk; path=/; expires=Wed, 21-Jan-26 03:46:50 GMT; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None, __cflb=0H28vBjUqcdJN5F5i82S5HyHebMAKB1d1CdRpTJTpBF; SameSite=None; Secure; path=/; expires=Wed, 21-Jan-26 03:46:50 GMT; HttpOnly, _cfuvid=Y5KdyvvLrk1BAPAG5sElkCB6SrH7sM3bRaehyvL0sc4-1768965410403-0.0.1.1-604800000; path=/; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None
+  server-timing: cfCacheStatus;desc="DYNAMIC", cfOrigin;dur=398,cfEdge;dur=12
+  strict-transport-security: max-age=31536000; includeSubDomains; preload
+  x-content-type-options: nosniff
+  server: cloudflare
+  cf-ray: 9c13a7b47d849879-NRT
+  content-encoding: gzip
+
+📦 Response Body:
+[
+  {
+    "id": "task_01kff8vtv1f9rvrawqjkdbhs6z",
+    "status": "running",
+    "prompt": "a woman duet singing with a monkey",
+    "title": null,
+    "progress_pct": 0.1,
+    "generations": []
+  }
+]
+====================================================================================================
+
