@@ -44,3 +44,6 @@ custom_parse_token = ""
 
 [token_refresh]
 at_auto_refresh_enabled = false
+
+[call_logic]
+call_mode = "default"

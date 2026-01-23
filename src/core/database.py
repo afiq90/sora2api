@@ -438,6 +438,17 @@ class Database:
                 )
             """)
 
+            # Call logic config table
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS call_logic_config (
+                    id INTEGER PRIMARY KEY DEFAULT 1,
+                    call_mode TEXT DEFAULT 'default',
+                    polling_mode_enabled BOOLEAN DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # Create indexes
             await db.execute("CREATE INDEX IF NOT EXISTS idx_task_id ON tasks(task_id)")
             await db.execute("CREATE INDEX IF NOT EXISTS idx_task_status ON tasks(status)")
@@ -1139,5 +1150,32 @@ class Database:
                 SET at_auto_refresh_enabled = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = 1
             """, (at_auto_refresh_enabled,))
+            await db.commit()
+
+    # Call logic config operations
+    async def get_call_logic_config(self) -> "CallLogicConfig":
+        """Get call logic configuration"""
+        from .models import CallLogicConfig
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("SELECT * FROM call_logic_config WHERE id = 1")
+            row = await cursor.fetchone()
+            if row:
+                row_dict = dict(row)
+                if not row_dict.get("call_mode"):
+                    row_dict["call_mode"] = "polling" if row_dict.get("polling_mode_enabled") else "default"
+                return CallLogicConfig(**row_dict)
+            return CallLogicConfig(call_mode="default", polling_mode_enabled=False)
+
+    async def update_call_logic_config(self, call_mode: str):
+        """Update call logic configuration"""
+        normalized = "polling" if call_mode == "polling" else "default"
+        polling_mode_enabled = normalized == "polling"
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("""
+                UPDATE call_logic_config
+                SET polling_mode_enabled = ?, call_mode = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = 1
+            """, (polling_mode_enabled, normalized))
             await db.commit()
 

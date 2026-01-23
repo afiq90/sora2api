@@ -455,6 +455,22 @@
                     </div>
                 </div>
 
+                <!-- 调用逻辑配置 -->
+                <div class="rounded-lg border border-border bg-background p-6">
+                    <h3 class="text-lg font-semibold mb-4">账号调用逻辑</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm font-medium block">调用模式</label>
+                            <select id="cfgCallLogicMode" class="w-full mt-2 px-3 py-2 border border-input rounded-md bg-background text-foreground">
+                                <option value="default">随机轮询</option>
+                                <option value="polling">逐个轮询</option>
+                            </select>
+                            <p class="text-xs text-muted-foreground mt-2">随机轮询：随机选择可用账号；逐个轮询：每个活跃账号只调用一次，全部轮询后再开始下一轮</p>
+                        </div>
+                        <button onclick="saveCallLogicConfig()" class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">保存配置</button>
+                    </div>
+                </div>
+
                 <!-- 调试配置 -->
                 <div class="rounded-lg border border-border bg-background p-6">
                     <h3 class="text-lg font-semibold mb-4">调试配置</h3>
@@ -967,7 +983,9 @@
         logout=()=>{if(!confirm('确定要退出登录吗?'))return;localStorage.removeItem('adminToken');location.href='/login'},
         loadCharacters=async()=>{try{const r=await apiRequest('/api/characters');if(!r)return;const d=await r.json();const g=$('charactersGrid');if(!d||d.length===0){g.innerHTML='<div class="col-span-full text-center py-8 text-muted-foreground">暂无角色卡</div>';return}g.innerHTML=d.map(c=>`<div class="rounded-lg border border-border bg-background p-4"><div class="flex items-start gap-3"><img src="${c.avatar_path||'/static/favicon.ico'}" class="h-14 w-14 rounded-lg object-cover" onerror="this.src='/static/favicon.ico'"/><div class="flex-1 min-w-0"><div class="font-semibold truncate">${c.display_name||c.username}</div><div class="text-xs text-muted-foreground truncate">@${c.username}</div>${c.description?`<div class="text-xs text-muted-foreground mt-1 line-clamp-2">${c.description}</div>`:''}</div></div><div class="mt-3 flex gap-2"><button onclick="deleteCharacter(${c.id})" class="flex-1 inline-flex items-center justify-center rounded-md border border-destructive text-destructive hover:bg-destructive hover:text-white h-8 px-3 text-sm transition-colors">删除</button></div></div>`).join('')}catch(e){showToast('加载失败: '+e.message,'error')}},
         deleteCharacter=async(id)=>{if(!confirm('确定要删除这个角色卡吗?'))return;try{const r=await apiRequest(`/api/characters/${id}`,{method:'DELETE'});if(!r)return;const d=await r.json();if(d.success){showToast('删除成功','success');await loadCharacters()}else{showToast('删除失败','error')}}catch(e){showToast('删除失败: '+e.message,'error')}},
-        switchTab=t=>{const cap=n=>n.charAt(0).toUpperCase()+n.slice(1);['tokens','settings','logs','generate'].forEach(n=>{const active=n===t;$(`panel${cap(n)}`).classList.toggle('hidden',!active);$(`tab${cap(n)}`).classList.toggle('border-primary',active);$(`tab${cap(n)}`).classList.toggle('text-primary',active);$(`tab${cap(n)}`).classList.toggle('border-transparent',!active);$(`tab${cap(n)}`).classList.toggle('text-muted-foreground',!active)});if(t==='settings'){loadAdminConfig();loadProxyConfig();loadWatermarkFreeConfig();loadCacheConfig();loadGenerationTimeout();loadATAutoRefreshConfig()}else if(t==='logs'){loadLogs()}};
+        loadCallLogicConfig=async()=>{try{const r=await apiRequest('/api/call-logic/config');if(!r)return;const d=await r.json();if(d.success&&d.config){const mode=d.config.call_mode||((d.config.polling_mode_enabled||false)?'polling':'default');$('cfgCallLogicMode').value=mode}else{console.error('调用逻辑配置数据格式错误:',d)}}catch(e){console.error('加载调用逻辑配置失败:',e)}},
+        saveCallLogicConfig=async()=>{try{const mode=$('cfgCallLogicMode').value||'default';const r=await apiRequest('/api/call-logic/config',{method:'POST',body:JSON.stringify({call_mode:mode})});if(!r)return;const d=await r.json();if(d.success){showToast('调用逻辑配置保存成功','success')}else{showToast('保存失败','error')}}catch(e){showToast('保存失败: '+e.message,'error')}},
+        switchTab=t=>{const cap=n=>n.charAt(0).toUpperCase()+n.slice(1);['tokens','settings','logs','generate'].forEach(n=>{const active=n===t;$(`panel${cap(n)}`).classList.toggle('hidden',!active);$(`tab${cap(n)}`).classList.toggle('border-primary',active);$(`tab${cap(n)}`).classList.toggle('text-primary',active);$(`tab${cap(n)}`).classList.toggle('border-transparent',!active);$(`tab${cap(n)}`).classList.toggle('text-muted-foreground',!active)});if(t==='settings'){loadAdminConfig();loadProxyConfig();loadWatermarkFreeConfig();loadCacheConfig();loadGenerationTimeout();loadATAutoRefreshConfig();loadCallLogicConfig()}else if(t==='logs'){loadLogs()}};
         // 自适应生成面板 iframe 高度
         window.addEventListener('message', (event) => {
             const data = event.data || {};

@@ -208,5 +208,33 @@ class Config:
             self._config["token_refresh"] = {}
         self._config["token_refresh"]["at_auto_refresh_enabled"] = enabled
 
+    @property
+    def polling_mode_enabled(self) -> bool:
+        """Get polling mode enabled status"""
+        return self.call_logic_mode == "polling"
+
+    @property
+    def call_logic_mode(self) -> str:
+        """Get call logic mode (default or polling)"""
+        call_logic = self._config.get("call_logic", {})
+        mode = call_logic.get("call_mode")
+        if mode in ("default", "polling"):
+            return mode
+        if call_logic.get("polling_mode_enabled", False):
+            return "polling"
+        return "default"
+
+    def set_polling_mode_enabled(self, enabled: bool):
+        """Set polling mode enabled/disabled"""
+        self.set_call_logic_mode("polling" if enabled else "default")
+
+    def set_call_logic_mode(self, mode: str):
+        """Set call logic mode (default or polling)"""
+        normalized = "polling" if mode == "polling" else "default"
+        if "call_logic" not in self._config:
+            self._config["call_logic"] = {}
+        self._config["call_logic"]["call_mode"] = normalized
+        self._config["call_logic"]["polling_mode_enabled"] = normalized == "polling"
+
 # Global config instance
 config = Config()

@@ -149,6 +149,10 @@ class UpdateWatermarkFreeConfigRequest(BaseModel):
     custom_parse_url: Optional[str] = None
     custom_parse_token: Optional[str] = None
 
+class UpdateCallLogicConfigRequest(BaseModel):
+    call_mode: Optional[str] = None  # "default" or "polling"
+    polling_mode_enabled: Optional[bool] = None  # Legacy support
+
 class BatchDisableRequest(BaseModel):
     token_ids: List[int]
 
@@ -1120,6 +1124,48 @@ async def update_at_auto_refresh_enabled(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update AT auto refresh enabled status: {str(e)}")
+
+# Call logic config endpoints
+@router.get("/api/call-logic/config")
+async def get_call_logic_config(token: str = Depends(verify_admin_token)) -> dict:
+    """Get call logic configuration"""
+    config_obj = await db.get_call_logic_config()
+    call_mode = getattr(config_obj, "call_mode", None)
+    if call_mode not in ("default", "polling"):
+        call_mode = "polling" if config_obj.polling_mode_enabled else "default"
+    return {
+        "success": True,
+        "config": {
+            "call_mode": call_mode,
+            "polling_mode_enabled": call_mode == "polling"
+        }
+    }
+
+@router.post("/api/call-logic/config")
+async def update_call_logic_config(
+    request: UpdateCallLogicConfigRequest,
+    token: str = Depends(verify_admin_token)
+):
+    """Update call logic configuration"""
+    try:
+        call_mode = request.call_mode if request.call_mode in ("default", "polling") else None
+        if call_mode is None and request.polling_mode_enabled is not None:
+            call_mode = "polling" if request.polling_mode_enabled else "default"
+        if call_mode is None:
+            raise HTTPException(status_code=400, detail="Invalid call_mode")
+
+        await db.update_call_logic_config(call_mode)
+        config.set_call_logic_mode(call_mode)
+        return {
+            "success": True,
+            "message": "Call logic configuration updated",
+            "call_mode": call_mode,
+            "polling_mode_enabled": call_mode == "polling"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update call logic configuration: {str(e)}")
 
 # Task management endpoints
 @router.post("/api/tasks/{task_id}/cancel")

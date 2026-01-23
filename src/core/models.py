@@ -133,6 +133,14 @@ class TokenRefreshConfig(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
+class CallLogicConfig(BaseModel):
+    """Call logic configuration"""
+    id: int = 1
+    call_mode: str = "default"  # "default" or "polling"
+    polling_mode_enabled: bool = False  # Read from database, initialized from setting.toml on first startup
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
 # API Request/Response models
 class ChatMessage(BaseModel):
     role: str
