@@ -1,292 +1,500 @@
 ====================================================================================================
-🔴 [ERROR] 2026-01-21 03:10:04.026
+🔵 [REQUEST][Client] 2026-01-30 08:06:58.152
 ----------------------------------------------------------------------------------------------------
-Error Message: nf/create request failed: HTTP Error: 400 {
-  "error": {
-    "message": "We're under heavy load, please try again later.",
-    "type": "invalid_request_error",
-    "param": null,
-    "code": "heavy_load"
-  }
-}
+Method: POST
+URL: /v1/chat/completions
 
-📦 Error Response:
-HTTP Error: 400 {
-  "error": {
-    "message": "We're under heavy load, please try again later.",
-    "type": "invalid_request_error",
-    "param": null,
-    "code": "heavy_load"
-  }
-}
-====================================================================================================
+📋 Headers:
+  host: c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev
+  user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+  content-length: 145
+  accept: text/event-stream
+  accept-encoding: gzip, deflate, br, zstd
+  accept-language: en-GB,en-US;q=0.9,en;q=0.8
+  authorization: Bearer soraaa
+  content-type: application/json
+  origin: https://c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev
+  referer: https://c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev/static/generate.html
+  sec-ch-ua: "Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"
+  sec-ch-ua-mobile: ?0
+  sec-ch-ua-platform: "macOS"
+  sec-fetch-dest: empty
+  sec-fetch-mode: cors
+  sec-fetch-site: same-origin
+  x-forwarded-for: 175.140.235.81, 10.84.3.15
+  x-forwarded-proto: https
+  x-replit-user-bio: 
+  x-replit-user-id: 
+  x-replit-user-name: 
+  x-replit-user-profile-image: 
+  x-replit-user-roles: 
+  x-replit-user-teams: 
+  x-replit-user-url: 
 
-====================================================================================================
-🔴 [ERROR] 2026-01-21 03:10:26.874
-----------------------------------------------------------------------------------------------------
-Error Message: nf/create request failed: HTTP Error: 400 {
-  "error": {
-    "message": "We're under heavy load, please try again later.",
-    "type": "invalid_request_error",
-    "param": null,
-    "code": "heavy_load"
-  }
-}
-
-📦 Error Response:
-HTTP Error: 400 {
-  "error": {
-    "message": "We're under heavy load, please try again later.",
-    "type": "invalid_request_error",
-    "param": null,
-    "code": "heavy_load"
-  }
-}
-====================================================================================================
-
-====================================================================================================
-🔴 [ERROR] 2026-01-21 03:10:36.784
-----------------------------------------------------------------------------------------------------
-Error Message: nf/create request failed: HTTP Error: 400 {
-  "error": {
-    "message": "We're under heavy load, please try again later.",
-    "type": "invalid_request_error",
-    "param": null,
-    "code": "heavy_load"
-  }
-}
-
-📦 Error Response:
-HTTP Error: 400 {
-  "error": {
-    "message": "We're under heavy load, please try again later.",
-    "type": "invalid_request_error",
-    "param": null,
-    "code": "heavy_load"
-  }
-}
-====================================================================================================
-
-====================================================================================================
-🔴 [ERROR] 2026-01-21 03:11:00.149
-----------------------------------------------------------------------------------------------------
-Error Message: nf/create request failed: URL Error: <urlopen error unknown url type: socks5>
-
-📦 Error Response:
-URL Error: <urlopen error unknown url type: socks5>
-====================================================================================================
-
-====================================================================================================
-🔴 [ERROR] 2026-01-21 03:11:41.135
-----------------------------------------------------------------------------------------------------
-Error Message: nf/create request failed: HTTP Error: 429 {
-  "error": {
-    "message": "You already have 3 generations in progress. Please wait for them to finish before starting a new one.",
-    "type": "invalid_request_error",
-    "param": null,
-    "code": "too_many_concurrent_tasks",
-    "details": {
-      "num_tasks": 3
+📦 Request Body:
+{
+  "model": "sora2-portrait-10s",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "a woman duet singing with a monkey"
+        }
+      ]
     }
+  ],
+  "image": null,
+  "video": null,
+  "remix_target_id": null,
+  "stream": true,
+  "max_tokens": null
+}
+====================================================================================================
+
+ℹ️  [2026-01-30 08:06:58.156] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:06:58.161] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:06:58.161] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:06:58.190
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:06:58.190] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:06:58.200] Generation failed, retrying (1/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:07:00.200] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:07:00.204] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:07:00.204] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:07:00.245
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:07:00.246] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:07:00.262] Generation failed, retrying (2/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:07:02.264] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:07:02.269] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:07:02.269] [Sentinel] Fetching oai-did...
+ℹ️  [2026-01-30 08:07:03.102] [Sentinel] oai-did: 396c0132-4a19-4129-90e7-e9bf56db4551
+ℹ️  [2026-01-30 08:07:03.104] [Sentinel] Starting browser...
+ℹ️  [2026-01-30 08:07:03.405] [Warning] Lightweight sentinel token failed, falling back to manual POW
+ℹ️  [2026-01-30 08:07:04.886] Sentinel response: turnstile.dx=True, token=True, pow_required=True
+ℹ️  [2026-01-30 08:07:04.889] Final sentinel: p_prefix=gAAAAABWzE, p_suffix=Dld~S, t_len=22052, c_len=1892, flow=sora_2_create_task__auto
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:07:06.072
+----------------------------------------------------------------------------------------------------
+Error Message: nf/create request failed: HTTP Error: 400 {
+  "error": {
+    "message": "Unable to process request",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "invalid_request"
   }
 }
 
 📦 Error Response:
-HTTP Error: 429 {
+HTTP Error: 400 {
   "error": {
-    "message": "You already have 3 generations in progress. Please wait for them to finish before starting a new one.",
+    "message": "Unable to process request",
     "type": "invalid_request_error",
     "param": null,
-    "code": "too_many_concurrent_tasks",
-    "details": {
-      "num_tasks": 3
-    }
+    "code": "invalid_request"
   }
 }
 ====================================================================================================
 
-ℹ️  [2026-01-21 03:15:54.618] [ST_TO_AT] 开始转换 Session Token 为 Access Token...
-ℹ️  [2026-01-21 03:15:54.623] [ST_TO_AT] 使用代理: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
-ℹ️  [2026-01-21 03:15:54.623] [ST_TO_AT] 📡 请求 URL: https://sora.chatgpt.com/api/auth/session
-ℹ️  [2026-01-21 03:15:57.347] [ST_TO_AT] 📥 响应状态码: 200
-ℹ️  [2026-01-21 03:15:57.347] [ST_TO_AT] 📄 响应内容: {"user":{"id":"user-J4warYkX7oIDjkkK7oTkZXSP","email":"bydindakl@gmail.com","idp":"google-oauth2","iat":1768760918,"mfa":false,"lastAuthorizationCheck":1768965356},"expires":"2026-04-21T03:15:57.044Z","accessToken":"eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MzQ0ZTY1LWJiYzktNDRkMS1hOWQwLWY5NTdiMDc5YmQwZSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS92MSJdLCJjbGllbnRfaWQiOiJhcHBfWDh6WTZ2VzJwUTl0UjNkRTduSzFqTDVnSCIsImV4cCI6MTc2OTYyNDkxOCwiaHR0cHM6Ly9hcGkub3BlbmFpLmNvbS9hdXRoIjp7ImNoYXRncHRfY29
-ℹ️  [2026-01-21 03:15:57.347] [ST_TO_AT] ✅ ST 转换成功
-ℹ️  [2026-01-21 03:15:57.347]   - Email: bydindakl@gmail.com
-ℹ️  [2026-01-21 03:15:57.347]   - 过期时间: 2026-04-21T03:15:57.044Z
-ℹ️  [2026-01-21 03:16:06.568] Token 3 concurrency reset (image: 1, video: 3)
-ℹ️  [2026-01-21 03:16:24.837] Token 3 acquired video slot (remaining: 2)
-ℹ️  [2026-01-21 03:16:42.026] Starting task polling: task_id=task_01kff8vtv1f9rvrawqjkdbhs6z, is_video=True, timeout=3000s, max_attempts=1200
-ℹ️  [2026-01-21 03:16:42.028] Watermark-free mode: ENABLED
+ℹ️  [2026-01-30 08:07:06.074] [Sentinel] Got 400 error, refreshing token and retrying...
+ℹ️  [2026-01-30 08:07:06.074] [Sentinel] Cache invalidated
+ℹ️  [2026-01-30 08:07:06.074] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:07:06.075] [Sentinel] Fetching oai-did...
+ℹ️  [2026-01-30 08:07:06.120] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:07:06.128] Generation failed, retrying (3/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:07:08.130] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:07:08.137] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:07:08.137] [Sentinel] Fetching oai-did...
+ℹ️  [2026-01-30 08:07:09.041] [Sentinel] oai-did: c4404bc0-7a4b-4e76-9067-1348a41db938
+ℹ️  [2026-01-30 08:07:09.043] [Sentinel] Starting browser...
+ℹ️  [2026-01-30 08:07:09.564] [Warning] Lightweight sentinel token failed, falling back to manual POW
+ℹ️  [2026-01-30 08:07:10.886] Sentinel response: turnstile.dx=True, token=True, pow_required=True
+ℹ️  [2026-01-30 08:07:10.887] Final sentinel: p_prefix=gAAAAABWzM, p_suffix=Q==~S, t_len=19164, c_len=1804, flow=sora_2_create_task__auto
 ====================================================================================================
-🔵 [REQUEST] 2026-01-21 03:16:44.530
+🔴 [ERROR][Server] 2026-01-30 08:07:12.993
 ----------------------------------------------------------------------------------------------------
-Method: GET
-URL: https://sora.chatgpt.com/backend/nf/pending/v2
-
-📋 Headers:
-  Authorization: Bearer eyJhbG...PLUpEo
-  User-Agent: Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)
-  Content-Type: application/json
-
-🌐 Proxy: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
-====================================================================================================
-
-====================================================================================================
-🟢 [RESPONSE] 2026-01-21 03:16:45.853
-----------------------------------------------------------------------------------------------------
-Status: 200 ✅
-Duration: 1321.91ms
-
-📋 Response Headers:
-  date: Wed, 21 Jan 2026 03:16:45 GMT
-  content-type: application/json
-  openai-version: 2020-10-01
-  openai-organization: user-j4warykx7oidjkkk7otkzxsp
-  x-request-id: 849a608f-cced-4c4d-b334-e4a0012a2192
-  openai-processing-ms: 129
-  x-oai-request-id: 849a608f-cced-4c4d-b334-e4a0012a2192
-  x-sora-request-id: 849a608f-cced-4c4d-b334-e4a0012a2192
-  x-envoy-upstream-service-time: 132
-  x-openai-proxy-wasm: v0.1
-  cf-cache-status: DYNAMIC
-  set-cookie: __cf_bm=iKyhSN9sv4U6rmJdZXfYgr9iwvYTpmw.VP9glqPhYNA-1768965405-1.0.1.1-xEElO7q0nLqCnmhI2UGJHUQAWV3msldqcCU.qHFUG6JC_d.kcx833xuIEEEw6.zJ830HMyevhdw2saLqO3YnR0SbRmGKUgIg9khE1HXGIPs; path=/; expires=Wed, 21-Jan-26 03:46:45 GMT; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None, __cflb=0H28vBjUqcdJN5F5i8D3tzftjvH7q1fns5AkCtmR87P; SameSite=None; Secure; path=/; expires=Wed, 21-Jan-26 03:46:45 GMT; HttpOnly, _cfuvid=ltJxU4JOFYDllGWuXRiroFFstKZZ4ZBztu24lUkskqI-1768965405687-0.0.1.1-604800000; path=/; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None
-  server-timing: cfCacheStatus;desc="DYNAMIC", cfOrigin;dur=282,cfEdge;dur=13
-  strict-transport-security: max-age=31536000; includeSubDomains; preload
-  x-content-type-options: nosniff
-  server: cloudflare
-  cf-ray: 9c13a797b84a19f1-KIX
-  content-encoding: gzip
-
-📦 Response Body:
-[
-  {
-    "id": "task_01kff8vtv1f9rvrawqjkdbhs6z",
-    "status": "preprocessing",
-    "prompt": "a woman duet singing with a monkey",
-    "title": null,
-    "progress_pct": null,
-    "generations": []
+Error Message: nf/create request failed: HTTP Error: 400 {
+  "error": {
+    "message": "Unable to process request",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "invalid_request"
   }
-]
-====================================================================================================
+}
 
-====================================================================================================
-🔵 [REQUEST] 2026-01-21 03:16:48.361
-----------------------------------------------------------------------------------------------------
-Method: GET
-URL: https://sora.chatgpt.com/backend/nf/pending/v2
-
-📋 Headers:
-  Authorization: Bearer eyJhbG...PLUpEo
-  User-Agent: Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)
-  Content-Type: application/json
-
-🌐 Proxy: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
-====================================================================================================
-
-====================================================================================================
-🟢 [RESPONSE] 2026-01-21 03:16:50.598
-----------------------------------------------------------------------------------------------------
-Status: 200 ✅
-Duration: 2235.91ms
-
-📋 Response Headers:
-  date: Wed, 21 Jan 2026 03:16:50 GMT
-  content-type: application/json
-  openai-version: 2020-10-01
-  openai-organization: user-j4warykx7oidjkkk7otkzxsp
-  x-request-id: 7a77409f-a3d6-46fa-b3ac-4b8a50ee533a
-  openai-processing-ms: 225
-  x-oai-request-id: 7a77409f-a3d6-46fa-b3ac-4b8a50ee533a
-  x-sora-request-id: 7a77409f-a3d6-46fa-b3ac-4b8a50ee533a
-  x-envoy-upstream-service-time: 229
-  x-openai-proxy-wasm: v0.1
-  cf-cache-status: DYNAMIC
-  set-cookie: __cf_bm=zM1gU45AHn3QRWYgnOWoKafQQ.NKbuaymYl4U4lhq_g-1768965410-1.0.1.1-v_V7k1YDJACpV4LZyNPNCM.q9WEKXbA1F_7Oe5P83irO.62dyRVXvZXVHCHyvqzQRXxMCUXRZYZ7hFRzgX606d5XmKdAmZUZiPkKGGTI.pk; path=/; expires=Wed, 21-Jan-26 03:46:50 GMT; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None, __cflb=0H28vBjUqcdJN5F5i82S5HyHebMAKB1d1CdRpTJTpBF; SameSite=None; Secure; path=/; expires=Wed, 21-Jan-26 03:46:50 GMT; HttpOnly, _cfuvid=Y5KdyvvLrk1BAPAG5sElkCB6SrH7sM3bRaehyvL0sc4-1768965410403-0.0.1.1-604800000; path=/; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None
-  server-timing: cfCacheStatus;desc="DYNAMIC", cfOrigin;dur=398,cfEdge;dur=12
-  strict-transport-security: max-age=31536000; includeSubDomains; preload
-  x-content-type-options: nosniff
-  server: cloudflare
-  cf-ray: 9c13a7b47d849879-NRT
-  content-encoding: gzip
-
-📦 Response Body:
-[
-  {
-    "id": "task_01kff8vtv1f9rvrawqjkdbhs6z",
-    "status": "running",
-    "prompt": "a woman duet singing with a monkey",
-    "title": null,
-    "progress_pct": 0.1,
-    "generations": []
+📦 Error Response:
+HTTP Error: 400 {
+  "error": {
+    "message": "Unable to process request",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "invalid_request"
   }
-]
+}
 ====================================================================================================
 
+ℹ️  [2026-01-30 08:07:12.993] [Sentinel] Got 400 error, refreshing token and retrying...
+ℹ️  [2026-01-30 08:07:12.993] [Sentinel] Cache invalidated
+ℹ️  [2026-01-30 08:07:12.993] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:07:12.993] [Sentinel] Fetching oai-did...
+ℹ️  [2026-01-30 08:07:13.878] [Sentinel] oai-did: e01aa28a-a97f-4eaf-a457-0ee71713b5fb
+ℹ️  [2026-01-30 08:07:13.881] [Sentinel] Starting browser...
+ℹ️  [2026-01-30 08:07:14.241] [Warning] Refresh failed, falling back to manual POW
+ℹ️  [2026-01-30 08:07:16.071] Sentinel response: turnstile.dx=True, token=True, pow_required=True
+ℹ️  [2026-01-30 08:07:16.072] Final sentinel: p_prefix=gAAAAABWzM, p_suffix=10=~S, t_len=19928, c_len=1828, flow=sora_2_create_task__auto
 ====================================================================================================
-🔵 [REQUEST] 2026-01-21 03:16:53.106
+🔴 [ERROR][Server] 2026-01-30 08:07:18.013
 ----------------------------------------------------------------------------------------------------
-Method: GET
-URL: https://sora.chatgpt.com/backend/nf/pending/v2
-
-📋 Headers:
-  Authorization: Bearer eyJhbG...PLUpEo
-  User-Agent: Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)
-  Content-Type: application/json
-
-🌐 Proxy: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
-====================================================================================================
-
-====================================================================================================
-🟢 [RESPONSE] 2026-01-21 03:16:55.067
-----------------------------------------------------------------------------------------------------
-Status: 200 ✅
-Duration: 1960.46ms
-
-📋 Response Headers:
-  date: Wed, 21 Jan 2026 03:16:54 GMT
-  content-type: application/json
-  openai-version: 2020-10-01
-  openai-organization: user-j4warykx7oidjkkk7otkzxsp
-  x-request-id: 36357dce-4c72-4221-b073-6896d2e6c1bb
-  openai-processing-ms: 275
-  x-oai-request-id: 36357dce-4c72-4221-b073-6896d2e6c1bb
-  x-sora-request-id: 36357dce-4c72-4221-b073-6896d2e6c1bb
-  x-envoy-upstream-service-time: 278
-  x-openai-proxy-wasm: v0.1
-  cf-cache-status: DYNAMIC
-  set-cookie: __cf_bm=0RKo9n6mGAbiioMG60FNAJhCrQTqCN.30DT9JO2LFxk-1768965414-1.0.1.1-UG7gpERMLtseJnb2A_1wGbCuSSvZBtP8yL0Gj.DGnLAtwBbHnpATHy5IxWXR.yCSUUy6z53KDWl_JOGunvGdeL3zv26rBZFXwdbQ3cWyhsI; path=/; expires=Wed, 21-Jan-26 03:46:54 GMT; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None, __cflb=0H28vBjUqcdJN5F5i82iriTLTdVMReM9vPgYfzMEpoX; SameSite=None; Secure; path=/; expires=Wed, 21-Jan-26 03:46:54 GMT; HttpOnly, _cfuvid=YHX2RSWDI0KrYmDxVyP1cDQuKPYP5VggBpN1rY42la4-1768965414854-0.0.1.1-604800000; path=/; domain=.sora.chatgpt.com; HttpOnly; Secure; SameSite=None
-  server-timing: cfCacheStatus;desc="DYNAMIC", cfOrigin;dur=798,cfEdge;dur=19
-  strict-transport-security: max-age=31536000; includeSubDomains; preload
-  x-content-type-options: nosniff
-  server: cloudflare
-  cf-ray: 9c13a7cdb8bc8a90-NRT
-  content-encoding: gzip
-
-📦 Response Body:
-[
-  {
-    "id": "task_01kff8vtv1f9rvrawqjkdbhs6z",
-    "status": "running",
-    "prompt": "a woman duet singing with a monkey",
-    "title": null,
-    "progress_pct": 0.1,
-    "generations": []
+Error Message: nf/create request failed: HTTP Error: 400 {
+  "error": {
+    "message": "Unable to process request",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "invalid_request"
   }
-]
+}
+
+📦 Error Response:
+HTTP Error: 400 {
+  "error": {
+    "message": "Unable to process request",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "invalid_request"
+  }
+}
 ====================================================================================================
 
+ℹ️  [2026-01-30 08:07:18.018] Token 3 released video slot (remaining: 3)
 ====================================================================================================
-🔵 [REQUEST] 2026-01-21 03:16:57.611
+🔵 [REQUEST][Client] 2026-01-30 08:10:15.243
 ----------------------------------------------------------------------------------------------------
-Method: GET
-URL: https://sora.chatgpt.com/backend/nf/pending/v2
+Method: POST
+URL: /v1/chat/completions
 
 📋 Headers:
-  Authorization: Bearer eyJhbG...PLUpEo
-  User-Agent: Sora/1.2026.007 (Android 15; 24122RKC7C; build 2600700)
-  Content-Type: application/json
+  host: c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev
+  user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+  content-length: 145
+  accept: text/event-stream
+  accept-encoding: gzip, deflate, br, zstd
+  accept-language: en-GB,en-US;q=0.9,en;q=0.8
+  authorization: Bearer soraaa
+  content-type: application/json
+  origin: https://c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev
+  referer: https://c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev/static/generate.html
+  sec-ch-ua: "Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"
+  sec-ch-ua-mobile: ?0
+  sec-ch-ua-platform: "macOS"
+  sec-fetch-dest: empty
+  sec-fetch-mode: cors
+  sec-fetch-site: same-origin
+  x-forwarded-for: 175.140.235.81, 10.84.6.91
+  x-forwarded-proto: https
+  x-replit-user-bio: 
+  x-replit-user-id: 
+  x-replit-user-name: 
+  x-replit-user-profile-image: 
+  x-replit-user-roles: 
+  x-replit-user-teams: 
+  x-replit-user-url: 
 
-🌐 Proxy: socks5://sshf1119149-region-JP:dnhk8oke@sg2.cliproxy.io:3010
+📦 Request Body:
+{
+  "model": "sora2-portrait-10s",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "a monkey IS singing with rock song"
+        }
+      ]
+    }
+  ],
+  "image": null,
+  "video": null,
+  "remix_target_id": null,
+  "stream": true,
+  "max_tokens": null
+}
 ====================================================================================================
 
+ℹ️  [2026-01-30 08:10:15.246] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:10:15.292] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:10:15.293] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:10:15.334
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:10:15.339] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:10:15.357] Generation failed, retrying (1/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:10:17.358] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:10:17.363] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:10:17.363] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:10:17.406
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:10:17.407] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:10:17.419] Generation failed, retrying (2/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:10:19.421] Generation failed, retrying (3/3): No available tokens for video generation. All tokens are either disabled, cooling down, Sora2 quota exhausted, don't support Sora2, or expired.
+====================================================================================================
+🔵 [REQUEST][Client] 2026-01-30 08:10:34.595
+----------------------------------------------------------------------------------------------------
+Method: POST
+URL: /v1/chat/completions
+
+📋 Headers:
+  host: c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev
+  user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+  content-length: 145
+  accept: text/event-stream
+  accept-encoding: gzip, deflate, br, zstd
+  accept-language: en-GB,en-US;q=0.9,en;q=0.8
+  authorization: Bearer soraaa
+  content-type: application/json
+  origin: https://c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev
+  referer: https://c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev/static/generate.html
+  sec-ch-ua: "Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"
+  sec-ch-ua-mobile: ?0
+  sec-ch-ua-platform: "macOS"
+  sec-fetch-dest: empty
+  sec-fetch-mode: cors
+  sec-fetch-site: same-origin
+  x-forwarded-for: 175.140.235.81, 10.84.0.16
+  x-forwarded-proto: https
+  x-replit-user-bio: 
+  x-replit-user-id: 
+  x-replit-user-name: 
+  x-replit-user-profile-image: 
+  x-replit-user-roles: 
+  x-replit-user-teams: 
+  x-replit-user-url: 
+
+📦 Request Body:
+{
+  "model": "sora2-portrait-10s",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "a monkey IS singing with rock song"
+        }
+      ]
+    }
+  ],
+  "image": null,
+  "video": null,
+  "remix_target_id": null,
+  "stream": true,
+  "max_tokens": null
+}
+====================================================================================================
+
+ℹ️  [2026-01-30 08:10:34.598] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:10:34.649] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:10:34.649] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:10:34.712
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:10:34.713] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:10:34.721] Generation failed, retrying (1/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:10:36.722] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:10:36.727] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:10:36.728] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:10:36.757
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:10:36.758] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:10:36.766] Generation failed, retrying (2/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:10:38.767] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:10:38.781] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:10:38.781] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:10:38.811
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:10:38.812] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:10:38.820] Generation failed, retrying (3/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:10:40.821] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:10:40.827] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:10:40.827] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:10:40.858
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:10:40.859] Token 3 released video slot (remaining: 3)
+====================================================================================================
+🔵 [REQUEST][Client] 2026-01-30 08:11:14.371
+----------------------------------------------------------------------------------------------------
+Method: POST
+URL: /v1/chat/completions
+
+📋 Headers:
+  host: c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev
+  user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36
+  content-length: 145
+  accept: text/event-stream
+  accept-encoding: gzip, deflate, br, zstd
+  accept-language: en-GB,en-US;q=0.9,en;q=0.8
+  authorization: Bearer soraaa
+  content-type: application/json
+  origin: https://c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev
+  referer: https://c563a1a0-3a90-4e16-a3f6-b04a7eadd1df-00-2thott5uux1qz.sisko.replit.dev/static/generate.html
+  sec-ch-ua: "Not(A:Brand";v="8", "Chromium";v="144", "Google Chrome";v="144"
+  sec-ch-ua-mobile: ?0
+  sec-ch-ua-platform: "macOS"
+  sec-fetch-dest: empty
+  sec-fetch-mode: cors
+  sec-fetch-site: same-origin
+  x-forwarded-for: 175.140.235.81, 10.84.3.15
+  x-forwarded-proto: https
+  x-replit-user-bio: 
+  x-replit-user-id: 
+  x-replit-user-name: 
+  x-replit-user-profile-image: 
+  x-replit-user-roles: 
+  x-replit-user-teams: 
+  x-replit-user-url: 
+
+📦 Request Body:
+{
+  "model": "sora2-portrait-10s",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "a monkey IS singing with rock song"
+        }
+      ]
+    }
+  ],
+  "image": null,
+  "video": null,
+  "remix_target_id": null,
+  "stream": true,
+  "max_tokens": null
+}
+====================================================================================================
+
+ℹ️  [2026-01-30 08:11:14.379] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:11:14.385] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:11:14.386] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:11:14.491
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:11:14.491] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:11:14.499] Generation failed, retrying (1/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:11:16.501] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:11:16.506] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:11:16.507] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:11:16.543
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:11:16.547] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:11:16.558] Generation failed, retrying (2/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:11:18.560] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:11:18.577] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:11:18.577] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:11:18.605
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:11:18.608] Token 3 released video slot (remaining: 3)
+ℹ️  [2026-01-30 08:11:18.623] Generation failed, retrying (3/3): 403 Forbidden - Access denied when fetching oai-did
+ℹ️  [2026-01-30 08:11:20.625] Token 3 acquired video slot (remaining: 2)
+ℹ️  [2026-01-30 08:11:20.629] [Sentinel] Generating new token...
+ℹ️  [2026-01-30 08:11:20.629] [Sentinel] Fetching oai-did...
+====================================================================================================
+🔴 [ERROR][Server] 2026-01-30 08:11:20.678
+----------------------------------------------------------------------------------------------------
+Status Code: 403
+Error Message: Failed to get sentinel token: 403 Forbidden - Access denied when fetching oai-did
+
+📦 Error Response:
+403 Forbidden - Access denied when fetching oai-did
+====================================================================================================
+
+ℹ️  [2026-01-30 08:11:20.679] Token 3 released video slot (remaining: 3)
