@@ -19,14 +19,272 @@ from .proxy_manager import ProxyManager
 from ..core.config import config
 from ..core.logger import debug_logger
 
+try:
+    from playwright.async_api import async_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+
+# Global browser instance for reuse (lightweight Playwright approach)
+_browser = None
+_playwright = None
+_current_proxy = None
+
+# Sentinel token cache
+_cached_sentinel_token = None
+_cached_device_id = None
+
+
+async def _get_browser(proxy_url: str = None):
+    """Get or create browser instance (reuses existing browser)"""
+    global _browser, _playwright, _current_proxy
+    
+    # If proxy changed, restart browser
+    if _browser is not None and _current_proxy != proxy_url:
+        await _browser.close()
+        _browser = None
+    
+    if _browser is None:
+        _playwright = await async_playwright().start()
+        launch_args = {
+            'headless': True,
+            'args': [
+                '--no-sandbox',
+                '--disable-gpu',
+                '--disable-dev-shm-usage',
+                '--disable-extensions',
+                '--disable-plugins',
+                '--disable-images',
+                '--disable-default-apps',
+                '--disable-sync',
+                '--disable-translate',
+                '--disable-background-networking',
+                '--disable-software-rasterizer',
+            ]
+        }
+        if proxy_url:
+            launch_args['proxy'] = {'server': proxy_url}
+        _browser = await _playwright.chromium.launch(**launch_args)
+        _current_proxy = proxy_url
+    return _browser
+
+
+async def _close_browser():
+    """Close browser instance"""
+    global _browser, _playwright
+    if _browser:
+        await _browser.close()
+        _browser = None
+    if _playwright:
+        await _playwright.stop()
+        _playwright = None
+
+
+async def _fetch_oai_did(proxy_url: str = None, max_retries: int = 3) -> str:
+    """Fetch oai-did using curl_cffi (lightweight approach)
+    
+    Raises:
+        Exception: If 403 or 429 response received
+    """
+    debug_logger.log_info(f"[Sentinel] Fetching oai-did...")
+    
+    for attempt in range(max_retries):
+        try:
+            async with AsyncSession(impersonate="chrome120") as session:
+                response = await session.get(
+                    "https://chatgpt.com/",
+                    proxy=proxy_url,
+                    timeout=30,
+                    allow_redirects=True
+                )
+                
+                # Check for 403/429 errors - don't retry, just fail
+                if response.status_code == 403:
+                    raise Exception("403 Forbidden - Access denied when fetching oai-did")
+                if response.status_code == 429:
+                    raise Exception("429 Too Many Requests - Rate limited when fetching oai-did")
+                
+                oai_did = response.cookies.get("oai-did")
+                if oai_did:
+                    debug_logger.log_info(f"[Sentinel] oai-did: {oai_did}")
+                    return oai_did
+                
+                set_cookie = response.headers.get("set-cookie", "")
+                match = re.search(r'oai-did=([a-f0-9-]{36})', set_cookie)
+                if match:
+                    oai_did = match.group(1)
+                    debug_logger.log_info(f"[Sentinel] oai-did: {oai_did}")
+                    return oai_did
+                    
+        except Exception as e:
+            error_str = str(e)
+            # Re-raise 403/429 errors immediately
+            if "403" in error_str or "429" in error_str:
+                raise
+            debug_logger.log_info(f"[Sentinel] oai-did fetch failed: {e}")
+        
+        if attempt < max_retries - 1:
+            await asyncio.sleep(2)
+    
+    return None
+
+
+async def _generate_sentinel_token_lightweight(proxy_url: str = None, device_id: str = None) -> str:
+    """Generate sentinel token using lightweight Playwright approach
+    
+    Uses route interception and SDK injection for minimal resource usage.
+    Reuses browser instance across calls.
+    
+    Args:
+        proxy_url: Optional proxy URL
+        device_id: Optional pre-fetched oai-did
+        
+    Returns:
+        Sentinel token string or None on failure
+        
+    Raises:
+        Exception: If 403/429 when fetching oai-did
+    """
+    global _cached_device_id
+    
+    if not PLAYWRIGHT_AVAILABLE:
+        debug_logger.log_info("[Sentinel] Playwright not available")
+        return None
+    
+    # Get oai-did
+    if not device_id:
+        device_id = await _fetch_oai_did(proxy_url)
+    
+    if not device_id:
+        debug_logger.log_info("[Sentinel] Failed to get oai-did")
+        return None
+    
+    _cached_device_id = device_id
+    
+    debug_logger.log_info(f"[Sentinel] Starting browser...")
+    browser = await _get_browser(proxy_url)
+    
+    context = await browser.new_context(
+        viewport={'width': 800, 'height': 600},
+        user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        bypass_csp=True
+    )
+    
+    # Set cookie
+    await context.add_cookies([{
+        'name': 'oai-did',
+        'value': device_id,
+        'domain': 'sora.chatgpt.com',
+        'path': '/'
+    }])
+    
+    page = await context.new_page()
+    
+    # Route interception - inject SDK
+    inject_html = '''<!DOCTYPE html><html><head><script src="https://chatgpt.com/backend-api/sentinel/sdk.js"></script></head><body></body></html>'''
+    
+    async def handle_route(route):
+        url = route.request.url
+        if "__sentinel__" in url:
+            await route.fulfill(status=200, content_type="text/html", body=inject_html)
+        elif "/sentinel/" in url or "chatgpt.com" in url:
+            await route.continue_()
+        else:
+            await route.abort()
+    
+    await page.route("**/*", handle_route)
+    
+    debug_logger.log_info(f"[Sentinel] Loading SDK...")
+    
+    try:
+        # Load SDK via hack (must be under sora.chatgpt.com domain)
+        await page.goto("https://sora.chatgpt.com/__sentinel__", wait_until="load", timeout=30000)
+        
+        # Wait for SDK to load
+        await page.wait_for_function("typeof SentinelSDK !== 'undefined' && typeof SentinelSDK.token === 'function'", timeout=15000)
+        
+        debug_logger.log_info(f"[Sentinel] Getting token...")
+        
+        # Call SDK
+        token = await page.evaluate(f'''
+            async () => {{
+                try {{
+                    return await SentinelSDK.token('sora_2_create_task', '{device_id}');
+                }} catch (e) {{
+                    return 'ERROR: ' + e.message;
+                }}
+            }}
+        ''')
+        
+        if token and not token.startswith('ERROR'):
+            debug_logger.log_info(f"[Sentinel] Token obtained successfully")
+            return token
+        else:
+            debug_logger.log_info(f"[Sentinel] Token error: {token}")
+            return None
+            
+    except Exception as e:
+        debug_logger.log_info(f"[Sentinel] Error: {e}")
+        return None
+    finally:
+        await context.close()
+
+
+async def _get_cached_sentinel_token(proxy_url: str = None, force_refresh: bool = False) -> str:
+    """Get sentinel token with caching support
+    
+    Args:
+        proxy_url: Optional proxy URL
+        force_refresh: Force refresh token (e.g., after 400 error)
+        
+    Returns:
+        Sentinel token string or None
+        
+    Raises:
+        Exception: If 403/429 when fetching oai-did
+    """
+    global _cached_sentinel_token
+    
+    # Return cached token if available and not forcing refresh
+    if _cached_sentinel_token and not force_refresh:
+        debug_logger.log_info("[Sentinel] Using cached token")
+        return _cached_sentinel_token
+    
+    # Generate new token
+    debug_logger.log_info("[Sentinel] Generating new token...")
+    token = await _generate_sentinel_token_lightweight(proxy_url)
+    
+    if token:
+        _cached_sentinel_token = token
+        debug_logger.log_info("[Sentinel] Token cached successfully")
+    
+    return token
+
+
+def _invalidate_sentinel_cache():
+    """Invalidate cached sentinel token (call after 400 error)"""
+    global _cached_sentinel_token
+    _cached_sentinel_token = None
+    debug_logger.log_info("[Sentinel] Cache invalidated")
+
+
 # PoW related constants
 POW_MAX_ITERATION = 500000
-POW_CORES = [8, 16, 24, 32]
+POW_CORES = [4, 8, 12, 16, 24, 32]
+
+POW_SCREEN_SIZES = [1266, 1536, 1920, 2560, 3000, 3072, 3120, 3840]
 POW_SCRIPTS = [
-    "https://cdn.oaistatic.com/_next/static/cXh69klOLzS0Gy2joLDRS/_ssgManifest.js?dpl=453ebaec0d44c2decab71692e1bfe39be35a24b3"
+    "https://sora-cdn.oaistatic.com/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "https://sora-cdn.oaistatic.com/_next/static/chunks/6974-eaafbe7db9c73c96.js",
+    "https://sora-cdn.oaistatic.com/_next/static/chunks/main-app-5f0c58611778fb36.js",
+    "https://chatgpt.com/backend-api/sentinel/sdk.js",
 ]
-POW_DPL = ["prod-f501fe933b3edf57aea882da888e1a544df99840"]
 POW_NAVIGATOR_KEYS = [
+    "mimeTypes−[object MimeTypeArray]",
+    "userAgentData−[object NavigatorUAData]",
+    "scheduling−[object Scheduling]",
+    "keyboard−[object Keyboard]",
+    "webkitPersistentStorage−[object DeprecatedStorageQuota]",
     "registerProtocolHandler−function registerProtocolHandler() { [native code] }",
     "storage−[object StorageManager]",
     "locks−[object LockManager]",
@@ -41,12 +299,31 @@ POW_NAVIGATOR_KEYS = [
     "hardwareConcurrency−32",
     "onLine−true",
 ]
-POW_DOCUMENT_KEYS = ["_reactListeningo743lnnpvdg", "location"]
+POW_DOCUMENT_KEYS = [
+    "__reactContainer$3k0e9yog4o3",
+    "__reactContainer$ft149nhgior",
+    "__reactResources$9nnifsagitb",
+    "_reactListeningou2wvttp2d9",
+    "_reactListeningu9qurgpwsme",
+    "_reactListeningo743lnnpvdg",
+    "location",
+    "body",
+]
 POW_WINDOW_KEYS = [
+    "getSelection",
+    "btoa",
+    "__next_s",
+    "crossOriginIsolated",
+    "print",
     "0", "window", "self", "document", "name", "location",
     "navigator", "screen", "innerWidth", "innerHeight",
     "localStorage", "sessionStorage", "crypto", "performance",
-    "fetch", "setTimeout", "setInterval", "console",
+]
+POW_LANGUAGES = [
+    ("zh-CN", "zh-CN,zh"),
+    ("en-US", "en-US,en"),
+    ("ja-JP", "ja-JP,ja,en"),
+    ("ko-KR", "ko-KR,ko,en"),
 ]
 
 # User-Agent pools
@@ -74,7 +351,7 @@ class SoraClient:
     """Sora API client with proxy support"""
 
     CHATGPT_BASE_URL = "https://chatgpt.com"
-    SENTINEL_FLOW = "sora_2_create_task"
+    SENTINEL_FLOW = "sora_2_create_task__auto"
 
     def __init__(self, proxy_manager: ProxyManager):
         self.proxy_manager = proxy_manager
@@ -83,32 +360,50 @@ class SoraClient:
 
     @staticmethod
     def _get_pow_parse_time() -> str:
-        """Generate time string for PoW (EST timezone)"""
-        now = datetime.now(timezone(timedelta(hours=-5)))
-        return now.strftime("%a %b %d %Y %H:%M:%S") + " GMT-0500 (Eastern Standard Time)"
+        """Generate time string for PoW (local timezone)"""
+        now = datetime.now()
+        
+        # Get local timezone offset (seconds)
+        if time.daylight and time.localtime().tm_isdst > 0:
+            utc_offset_seconds = -time.altzone
+        else:
+            utc_offset_seconds = -time.timezone
+        
+        # Format as +0800 or -0500
+        offset_hours = utc_offset_seconds // 3600
+        offset_minutes = abs(utc_offset_seconds % 3600) // 60
+        offset_sign = '+' if offset_hours >= 0 else '-'
+        offset_str = f"{offset_sign}{abs(offset_hours):02d}{offset_minutes:02d}"
+        
+        # Get timezone name
+        tz_name = time.tzname[1] if time.daylight and time.localtime().tm_isdst > 0 else time.tzname[0]
+        
+        return now.strftime("%a %b %d %Y %H:%M:%S") + f" GMT{offset_str} ({tz_name})"
 
     @staticmethod
     def _get_pow_config(user_agent: str) -> list:
         """Generate PoW config array with browser fingerprint"""
+        lang = random.choice(POW_LANGUAGES)
+        perf_time = random.uniform(10000, 100000)
         return [
-            random.choice([1920 + 1080, 2560 + 1440, 1920 + 1200, 2560 + 1600]),
-            SoraClient._get_pow_parse_time(),
-            4294705152,
-            0,  # [3] dynamic
-            user_agent,
-            random.choice(POW_SCRIPTS) if POW_SCRIPTS else "",
-            random.choice(POW_DPL) if POW_DPL else None,
-            "en-US",
-            "en-US,es-US,en,es",
-            0,  # [9] dynamic
-            random.choice(POW_NAVIGATOR_KEYS),
-            random.choice(POW_DOCUMENT_KEYS),
-            random.choice(POW_WINDOW_KEYS),
-            time.perf_counter() * 1000,
-            str(uuid4()),
-            "",
-            random.choice(POW_CORES),
-            time.time() * 1000 - (time.perf_counter() * 1000),
+            random.choice(POW_SCREEN_SIZES),  # [0] screen size
+            SoraClient._get_pow_parse_time(),  # [1] time string (local timezone)
+            random.choice([4294967296, 4294705152, 2147483648]),  # [2] jsHeapSizeLimit
+            0,  # [3] iteration count (dynamic)
+            user_agent,  # [4] UA
+            random.choice(POW_SCRIPTS) if POW_SCRIPTS else "",  # [5] sora cdn script
+            None,  # [6] must be null
+            lang[0],  # [7] language
+            lang[1],  # [8] languages
+            random.randint(2, 10),  # [9] random initial value for dynamic calc
+            random.choice(POW_NAVIGATOR_KEYS),  # [10] navigator key
+            random.choice(POW_DOCUMENT_KEYS),  # [11] document key
+            random.choice(POW_WINDOW_KEYS),  # [12] window key
+            perf_time,  # [13] perf time (random)
+            str(uuid4()),  # [14] UUID
+            "",  # [15] empty
+            random.choice(POW_CORES),  # [16] cores
+            time.time() * 1000 - perf_time,  # [17] time origin
         ]
 
     @staticmethod
@@ -121,10 +416,12 @@ class SoraClient:
         static_part1 = (json.dumps(config_list[:3], separators=(',', ':'), ensure_ascii=False)[:-1] + ',').encode()
         static_part2 = (',' + json.dumps(config_list[4:9], separators=(',', ':'), ensure_ascii=False)[1:-1] + ',').encode()
         static_part3 = (',' + json.dumps(config_list[10:], separators=(',', ':'), ensure_ascii=False)[1:]).encode()
-
+        initial_j = config_list[9]
+        
         for i in range(POW_MAX_ITERATION):
             dynamic_i = str(i).encode()
-            dynamic_j = str(i >> 1).encode()
+
+            dynamic_j = str(initial_j + (i + 29) // 30).encode()
 
             final_json = static_part1 + dynamic_i + static_part2 + dynamic_j + static_part3
             b64_encoded = base64.b64encode(final_json)
@@ -167,7 +464,7 @@ class SoraClient:
                 solution, success = SoraClient._solve_pow(seed, difficulty, config_list)
                 final_pow_token = "gAAAAAB" + solution
                 if not success:
-                    debug_logger.log_warning("PoW calculation failed, using error token")
+                    debug_logger.log_info("[Warning] PoW calculation failed, using error token")
 
         if not final_pow_token.endswith("~S"):
             final_pow_token = final_pow_token + "~S"
@@ -220,18 +517,130 @@ class SoraClient:
         
         raise last_exception or Exception("Request failed after retries")
 
-    async def _nf_create_urllib(self, token: str, payload: dict, sentinel_token: str,
-                                proxy_url: Optional[str], token_id: Optional[int] = None) -> Dict[str, Any]:
-        url = f"{self.base_url}/nf/create"
-        user_agent = random.choice(MOBILE_USER_AGENTS)
+    async def _get_sentinel_token_via_browser(self, proxy_url: Optional[str] = None) -> Optional[str]:
+        if not PLAYWRIGHT_AVAILABLE:
+            debug_logger.log_info("[Warning] Playwright not available, cannot use browser fallback")
+            return None
+        
+        try:
+            async with async_playwright() as p:
+                launch_args = {
+                    "headless": True,
+                    "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+                }
+                
+                if proxy_url:
+                    launch_args["proxy"] = {"server": proxy_url}
+                
+                browser = await p.chromium.launch(**launch_args)
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                )
+                
+                page = await context.new_page()
+                
+                debug_logger.log_info(f"[Browser] Navigating to sora.chatgpt.com...")
+                await page.goto("https://sora.chatgpt.com", wait_until="domcontentloaded", timeout=90000)
+                
+                cookies = await context.cookies()
+                device_id = None
+                for cookie in cookies:
+                    if cookie.get("name") == "oai-did":
+                        device_id = cookie.get("value")
+                        break
+                
+                if not device_id:
+                    device_id = str(uuid4())
+                    debug_logger.log_info(f"[Browser] No oai-did cookie, generated: {device_id}")
+                else:
+                    debug_logger.log_info(f"[Browser] Got oai-did from cookie: {device_id}")
+                
+                debug_logger.log_info(f"[Browser] Waiting for SentinelSDK...")
+                for _ in range(120):
+                    try:
+                        sdk_ready = await page.evaluate("() => typeof window.SentinelSDK !== 'undefined'")
+                        if sdk_ready:
+                            break
+                    except:
+                        pass
+                    await asyncio.sleep(0.5)
+                else:
+                    debug_logger.log_info("[Browser] SentinelSDK load timeout")
+                    await browser.close()
+                    return None
+                
+                debug_logger.log_info(f"[Browser] SentinelSDK ready, getting token...")
+                
+                # 尝试获取 token，最多重试 3 次
+                for attempt in range(3):
+                    debug_logger.log_info(f"[Browser] Getting token, attempt {attempt + 1}/3...")
+                    
+                    try:
+                        token = await page.evaluate(
+                            "(deviceId) => window.SentinelSDK.token('sora_2_create_task__auto', deviceId)",
+                            device_id
+                        )
+                        
+                        if token:
+                            debug_logger.log_info(f"[Browser] Token obtained successfully")
+                            await browser.close()
+                            
+                            if isinstance(token, str):
+                                token_data = json.loads(token)
+                            else:
+                                token_data = token
+                            
+                            if "id" not in token_data or not token_data.get("id"):
+                                token_data["id"] = device_id
+                            
+                            return json.dumps(token_data, ensure_ascii=False, separators=(",", ":"))
+                        else:
+                            debug_logger.log_info(f"[Browser] Token is empty")
+                            
+                    except Exception as e:
+                        debug_logger.log_info(f"[Browser] Token exception: {str(e)}")
+                    
+                    if attempt < 2:
+                        await asyncio.sleep(2)
+                
+                await browser.close()
+                return None
+                
+        except Exception as e:
+            debug_logger.log_error(
+                error_message=f"Browser sentinel token failed: {str(e)}",
+                status_code=0,
+                response_text=str(e),
+                source="Server"
+            )
+            return None
 
+    async def _nf_create_urllib(self, token: str, payload: dict, sentinel_token: str,
+                                proxy_url: Optional[str], token_id: Optional[int] = None,
+                                user_agent: Optional[str] = None) -> Dict[str, Any]:
+        """Make nf/create request
+        
+        Returns:
+            Response dict on success
+            
+        Raises:
+            Exception: With error info, including '400' in message for sentinel token errors
+        """
+        url = f"{self.base_url}/nf/create"
+        if not user_agent:
+            user_agent = random.choice(DESKTOP_USER_AGENTS)
+
+        import json as json_mod
+        sentinel_data = json_mod.loads(sentinel_token)
+        device_id = sentinel_data.get("id", str(uuid4()))
+        
         headers = {
             "Authorization": f"Bearer {token}",
-            "openai-sentinel-token": sentinel_token,
+            "OpenAI-Sentinel-Token": sentinel_token,
             "Content-Type": "application/json",
             "User-Agent": user_agent,
-            "Origin": "https://sora.chatgpt.com",
-            "Referer": "https://sora.chatgpt.com/",
+            "OAI-Language": "en-US",
+            "OAI-Device-Id": device_id,
         }
 
         try:
@@ -240,43 +649,94 @@ class SoraClient:
             )
             return result
         except Exception as e:
+            error_str = str(e)
             debug_logger.log_error(
-                error_message=f"nf/create request failed: {str(e)}",
+                error_message=f"nf/create request failed: {error_str}",
                 status_code=0,
-                response_text=str(e)
+                response_text=error_str,
+                source="Server"
             )
             raise
 
-    async def _generate_sentinel_token(self, token: Optional[str] = None) -> str:
+    @staticmethod
+    def _post_text_sync(url: str, headers: dict, body: str, timeout: int, proxy: Optional[str]) -> Dict[str, Any]:
+        data = body.encode("utf-8")
+        req = Request(url, data=data, headers=headers, method="POST")
+
+        try:
+            if proxy:
+                opener = build_opener(ProxyHandler({"http": proxy, "https": proxy}))
+                resp = opener.open(req, timeout=timeout)
+            else:
+                resp = urlopen(req, timeout=timeout)
+
+            resp_text = resp.read().decode("utf-8")
+            if resp.status not in (200, 201):
+                raise Exception(f"Request failed: {resp.status} {resp_text}")
+            return json.loads(resp_text)
+        except HTTPError as exc:
+            body_text = exc.read().decode("utf-8", errors="ignore")
+            raise Exception(f"HTTP Error: {exc.code} {body_text}") from exc
+        except URLError as exc:
+            raise Exception(f"URL Error: {exc}") from exc
+
+    async def _generate_sentinel_token(self, token: Optional[str] = None, user_agent: Optional[str] = None) -> Tuple[str, str]:
         """Generate openai-sentinel-token by calling /backend-api/sentinel/req and solving PoW"""
         req_id = str(uuid4())
-        user_agent = random.choice(DESKTOP_USER_AGENTS)
+        if not user_agent:
+            user_agent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+
         pow_token = self._get_pow_token(user_agent)
+        
+        init_payload = {
+            "p": pow_token,
+            "id": req_id,
+            "flow": "sora_init"
+        }
+        ua_with_pow = f"{user_agent} {json.dumps(init_payload, separators=(',', ':'))}"
 
         proxy_url = await self.proxy_manager.get_proxy_url()
 
         # Request sentinel/req endpoint
         url = f"{self.CHATGPT_BASE_URL}/backend-api/sentinel/req"
-        payload = {"p": pow_token, "flow": self.SENTINEL_FLOW, "id": req_id}
-        headers = {
-            "Accept": "application/json, text/plain, */*",
-            "Content-Type": "application/json",
-            "Origin": "https://sora.chatgpt.com",
-            "Referer": "https://sora.chatgpt.com/",
-            "User-Agent": user_agent,
+        request_payload = {
+            "p": pow_token,
+            "id": req_id,
+            "flow": "sora_init"
         }
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+        request_body = json.dumps(request_payload, separators=(',', ':'))
+        
+        headers = {
+            "Accept": "*/*",
+            "Content-Type": "text/plain;charset=UTF-8",
+            "Origin": "https://chatgpt.com",
+            "Referer": "https://chatgpt.com/backend-api/sentinel/frame.html",
+            "User-Agent": ua_with_pow,
+            "sec-ch-ua": '"Not(A:Brand";v="8", "Chromium";v="131", "Google Chrome";v="131"',
+            "sec-ch-ua-mobile": "?1",
+            "sec-ch-ua-platform": '"Android"',
+        }
 
         try:
-            resp = await asyncio.to_thread(
-                self._post_json_sync, url, headers, payload, 10, proxy_url
-            )
+            async with AsyncSession(impersonate="chrome131") as session:
+                response = await session.post(
+                    url,
+                    headers=headers,
+                    data=request_body,
+                    proxy=proxy_url,
+                    timeout=10
+                )
+                if response.status_code != 200:
+                    raise Exception(f"Sentinel request failed: {response.status_code} {response.text}")
+                resp = response.json()
+            
+            debug_logger.log_info(f"Sentinel response: turnstile.dx={bool(resp.get('turnstile', {}).get('dx'))}, token={bool(resp.get('token'))}, pow_required={resp.get('proofofwork', {}).get('required')}")
         except Exception as e:
             debug_logger.log_error(
                 error_message=f"Sentinel request failed: {str(e)}",
                 status_code=0,
-                response_text=str(e)
+                response_text=str(e),
+                source="Server"
             )
             raise
 
@@ -284,7 +744,12 @@ class SoraClient:
         sentinel_token = self._build_sentinel_token(
             self.SENTINEL_FLOW, req_id, pow_token, resp, user_agent
         )
-        return sentinel_token
+        
+        # Log final token for debugging
+        parsed = json.loads(sentinel_token)
+        debug_logger.log_info(f"Final sentinel: p_prefix={parsed['p'][:10]}, p_suffix={parsed['p'][-5:]}, t_len={len(parsed['t'])}, c_len={len(parsed['c'])}, flow={parsed['flow']}")
+        
+        return sentinel_token, user_agent
 
     @staticmethod
     def is_storyboard_prompt(prompt: str) -> bool:
@@ -373,7 +838,9 @@ class SoraClient:
 
         # 只在生成请求时添加 sentinel token
         if add_sentinel_token:
-            headers["openai-sentinel-token"] = await self._generate_sentinel_token(token)
+            sentinel_token, ua = await self._generate_sentinel_token(token)
+            headers["openai-sentinel-token"] = sentinel_token
+            headers["User-Agent"] = ua
 
         if not multipart:
             headers["Content-Type"] = "application/json"
@@ -403,7 +870,8 @@ class SoraClient:
                 headers=headers,
                 body=json_data,
                 files=multipart,
-                proxy=proxy_url
+                proxy=proxy_url,
+                source="Server"
             )
 
             # Record start time
@@ -431,7 +899,8 @@ class SoraClient:
                 status_code=response.status_code,
                 headers=dict(response.headers),
                 body=response_json if response_json else response.text,
-                duration_ms=duration_ms
+                duration_ms=duration_ms,
+                source="Server"
             )
 
             # Check status
@@ -453,7 +922,8 @@ class SoraClient:
                         debug_logger.log_error(
                             error_message=f"Unsupported country: {error_msg}",
                             status_code=response.status_code,
-                            response_text=error_msg
+                            response_text=error_msg,
+                            source="Server"
                         )
                         # Raise exception with structured error data
                         raise Exception(error_msg)
@@ -463,7 +933,8 @@ class SoraClient:
                 debug_logger.log_error(
                     error_message=error_msg,
                     status_code=response.status_code,
-                    response_text=response.text
+                    response_text=response.text,
+                    source="Server"
                 )
                 raise Exception(error_msg)
 
@@ -568,11 +1039,70 @@ class SoraClient:
             "style_id": style_id
         }
 
-        # 生成请求需要添加 sentinel token
         proxy_url = await self.proxy_manager.get_proxy_url(token_id)
-        sentinel_token = await self._generate_sentinel_token(token)
-        result = await self._nf_create_urllib(token, json_data, sentinel_token, proxy_url, token_id)
-        return result["id"]
+
+        # Get POW proxy from configuration
+        pow_proxy_url = None
+        if config.pow_proxy_enabled:
+            pow_proxy_url = config.pow_proxy_url or None
+
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+
+        # Try to get cached sentinel token first (using lightweight Playwright approach)
+        try:
+            sentinel_token = await _get_cached_sentinel_token(pow_proxy_url, force_refresh=False)
+        except Exception as e:
+            # 403/429 errors from oai-did fetch - don't retry, just fail
+            error_str = str(e)
+            if "403" in error_str or "429" in error_str:
+                debug_logger.log_error(
+                    error_message=f"Failed to get sentinel token: {error_str}",
+                    status_code=403 if "403" in error_str else 429,
+                    response_text=error_str,
+                    source="Server"
+                )
+                raise
+            sentinel_token = None
+
+        if not sentinel_token:
+            # Fallback to manual POW if lightweight approach fails
+            debug_logger.log_info("[Warning] Lightweight sentinel token failed, falling back to manual POW")
+            sentinel_token, user_agent = await self._generate_sentinel_token(token)
+
+        # First attempt with cached/generated token
+        try:
+            result = await self._nf_create_urllib(token, json_data, sentinel_token, proxy_url, token_id, user_agent)
+            return result["id"]
+        except Exception as e:
+            error_str = str(e)
+            
+            # Check if it's a 400 error (sentinel token invalid)
+            if "400" in error_str or "sentinel" in error_str.lower() or "invalid" in error_str.lower():
+                debug_logger.log_info("[Sentinel] Got 400 error, refreshing token and retrying...")
+                
+                # Invalidate cache and get fresh token
+                _invalidate_sentinel_cache()
+                
+                try:
+                    sentinel_token = await _get_cached_sentinel_token(pow_proxy_url, force_refresh=True)
+                except Exception as refresh_e:
+                    # 403/429 errors - don't continue
+                    error_str = str(refresh_e)
+                    if "403" in error_str or "429" in error_str:
+                        raise refresh_e
+                    sentinel_token = None
+                
+                if not sentinel_token:
+                    # Fallback to manual POW
+                    debug_logger.log_info("[Warning] Refresh failed, falling back to manual POW")
+                    sentinel_token, user_agent = await self._generate_sentinel_token(token)
+                
+                # Retry with fresh token
+                result = await self._nf_create_urllib(token, json_data, sentinel_token, proxy_url, token_id, user_agent)
+                return result["id"]
+            
+            # For other errors, just re-raise
+            raise
     
     async def get_image_tasks(self, token: str, limit: int = 20, token_id: Optional[int] = None) -> Dict[str, Any]:
         """Get recent image generation tasks"""
@@ -671,7 +1201,8 @@ class SoraClient:
                 status_code=response.status_code,
                 headers=dict(response.headers),
                 body=response.text if response.text else "No content",
-                duration_ms=duration_ms
+                duration_ms=duration_ms,
+                source="Server"
             )
 
             # Check status (DELETE typically returns 204 No Content or 200 OK)
@@ -680,7 +1211,8 @@ class SoraClient:
                 debug_logger.log_error(
                     error_message=error_msg,
                     status_code=response.status_code,
-                    response_text=response.text
+                    response_text=response.text,
+                    source="Server"
                 )
                 raise Exception(error_msg)
 
@@ -736,7 +1268,8 @@ class SoraClient:
                     status_code=response.status_code,
                     headers=dict(response.headers),
                     body=response.text if response.text else "No content",
-                    duration_ms=duration_ms
+                    duration_ms=duration_ms,
+                    source="Server"
                 )
 
                 # Check status
@@ -745,7 +1278,8 @@ class SoraClient:
                     debug_logger.log_error(
                         error_message=error_msg,
                         status_code=response.status_code,
-                        response_text=response.text
+                        response_text=response.text,
+                        source="Server"
                     )
                     raise Exception(error_msg)
 
@@ -758,7 +1292,8 @@ class SoraClient:
                     debug_logger.log_error(
                         error_message=error_msg,
                         status_code=401,
-                        response_text=str(result)
+                        response_text=str(result),
+                        source="Server"
                     )
                     raise Exception(error_msg)
 
@@ -774,7 +1309,8 @@ class SoraClient:
             debug_logger.log_error(
                 error_message=f"Custom parse request failed: {str(e)}",
                 status_code=500,
-                response_text=str(e)
+                response_text=str(e),
+                source="Server"
             )
             raise
 
@@ -974,8 +1510,8 @@ class SoraClient:
 
         # Generate sentinel token and call /nf/create using urllib
         proxy_url = await self.proxy_manager.get_proxy_url()
-        sentinel_token = await self._generate_sentinel_token(token)
-        result = await self._nf_create_urllib(token, json_data, sentinel_token, proxy_url)
+        sentinel_token, user_agent = await self._generate_sentinel_token(token)
+        result = await self._nf_create_urllib(token, json_data, sentinel_token, proxy_url, user_agent=user_agent)
         return result.get("id")
 
     async def generate_storyboard(self, prompt: str, token: str, orientation: str = "landscape",
